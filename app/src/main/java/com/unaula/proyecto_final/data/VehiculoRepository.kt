@@ -35,6 +35,8 @@ class VehiculoRepository(private val context: Context) {
                                     anio = (doc.getLong("anio") ?: 2022).toInt(),
                                     tipo = TipoVehiculo.valueOf(tipoStr),
                                     kilometrajeActual = (doc.getLong("kilometrajeActual") ?: 0).toInt(),
+                                    fechaSeguroSoat = doc.getLong("fechaSeguroSoat"),
+                                    fechaTecnoMecanica = doc.getLong("fechaTecnoMecanica"),
                                     fotoUrl = doc.getString("fotoUrl"),
                                     fechaActualizacionKm = doc.getLong("fechaActualizacionKm") ?: System.currentTimeMillis()
                                 )
@@ -51,6 +53,7 @@ class VehiculoRepository(private val context: Context) {
 
         // Si está vacío, agregar datos de muestra locales para prueba inicial
         if (_vehiculos.value.isEmpty()) {
+            val unAnioAdelante = System.currentTimeMillis() + (365L * 24 * 60 * 60 * 1000)
             _vehiculos.value = listOf(
                 Vehiculo(
                     id = "v1",
@@ -59,7 +62,9 @@ class VehiculoRepository(private val context: Context) {
                     modelo = "Corolla",
                     anio = 2021,
                     tipo = TipoVehiculo.AUTOMOVIL,
-                    kilometrajeActual = 45200
+                    kilometrajeActual = 45200,
+                    fechaSeguroSoat = unAnioAdelante,
+                    fechaTecnoMecanica = unAnioAdelante
                 ),
                 Vehiculo(
                     id = "v2",
@@ -68,7 +73,9 @@ class VehiculoRepository(private val context: Context) {
                     modelo = "FZ 25",
                     anio = 2023,
                     tipo = TipoVehiculo.MOTOCICLETA,
-                    kilometrajeActual = 12500
+                    kilometrajeActual = 12500,
+                    fechaSeguroSoat = null, // Para demostrar alerta de documentación faltante
+                    fechaTecnoMecanica = null
                 )
             )
         }
@@ -95,6 +102,8 @@ class VehiculoRepository(private val context: Context) {
                 "anio" to newVehiculo.anio,
                 "tipo" to newVehiculo.tipo.name,
                 "kilometrajeActual" to newVehiculo.kilometrajeActual,
+                "fechaSeguroSoat" to newVehiculo.fechaSeguroSoat,
+                "fechaTecnoMecanica" to newVehiculo.fechaTecnoMecanica,
                 "fotoUrl" to newVehiculo.fotoUrl,
                 "fechaActualizacionKm" to newVehiculo.fechaActualizacionKm
             )

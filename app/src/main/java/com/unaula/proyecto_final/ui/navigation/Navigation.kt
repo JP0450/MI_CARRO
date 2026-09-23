@@ -1,5 +1,8 @@
 package com.unaula.proyecto_final.ui.navigation
 
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
@@ -40,6 +43,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     object Reportes : Screen("reportes", "Reportes", Icons.Default.Analytics)
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppNavigation(
     vehiculoViewModel: VehiculoViewModel = viewModel(),
@@ -50,6 +54,8 @@ fun AppNavigation(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    val isImeVisible = WindowInsets.isImeVisible
+
     val bottomNavItems = listOf(
         Screen.Dashboard,
         Screen.Vehiculos,
@@ -59,7 +65,7 @@ fun AppNavigation(
 
     Scaffold(
         bottomBar = {
-            if (currentRoute in bottomNavItems.map { it.route }) {
+            if (!isImeVisible && currentRoute in bottomNavItems.map { it.route }) {
                 NavigationBar {
                     bottomNavItems.forEach { screen ->
                         NavigationBarItem(

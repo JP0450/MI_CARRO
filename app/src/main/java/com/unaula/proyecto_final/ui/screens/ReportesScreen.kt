@@ -114,7 +114,8 @@ fun ReportesScreen(
                 titulo = "Gasto Total Acumulado",
                 valor = "$${resumen.costoTotal}",
                 icon = Icons.Default.AttachMoney,
-                color = MaterialTheme.colorScheme.primaryContainer
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
 
@@ -122,18 +123,20 @@ fun ReportesScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Column(modifier = Modifier.weight(1f)) {
                     CardStat(
-                        titulo = "Mantenimiento Preventivo",
+                        titulo = "Preventivo",
                         valor = "$${resumen.costoPreventivos}",
                         icon = Icons.Default.Analytics,
-                        color = Color(0xFFE8F5E9)
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     CardStat(
-                        titulo = "Mantenimiento Correctivo",
+                        titulo = "Correctivo",
                         valor = "$${resumen.costoCorrectivos}",
                         icon = Icons.Default.Build,
-                        color = Color(0xFFFFEBEE)
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                 }
             }
@@ -154,7 +157,8 @@ fun ReportesScreen(
                         titulo = "Al día",
                         valor = "${resumen.mantenimientosAlDia}",
                         icon = Icons.Default.CheckCircle,
-                        color = Color(0xFFE8F5E9)
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {
@@ -162,7 +166,8 @@ fun ReportesScreen(
                         titulo = "Próximos / Vencidos",
                         valor = "${resumen.mantenimientosProximos + resumen.mantenimientosVencidos}",
                         icon = Icons.Default.Warning,
-                        color = Color(0xFFFFF3E0)
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
             }
@@ -193,23 +198,28 @@ fun CardStat(
     titulo: String,
     valor: String,
     icon: ImageVector,
-    color: Color
+    color: Color,
+    contentColor: Color
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = color)
+        colors = CardDefaults.cardColors(
+            containerColor = color,
+            contentColor = contentColor
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, contentDescription = null)
+                Icon(icon, contentDescription = null, tint = contentColor)
                 Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                Text(text = titulo, style = MaterialTheme.typography.bodyMedium)
+                Text(text = titulo, style = MaterialTheme.typography.bodyMedium, color = contentColor)
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = valor,
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = contentColor
             )
         }
     }

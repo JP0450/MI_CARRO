@@ -22,6 +22,16 @@ class AlertaMantenimientoWorker(
         var notificationCounter = 1000
 
         vehiculos.forEach { vehiculo ->
+            // Alerta de documentación (SOAT / Tecno-Mecánica)
+            if (vehiculo.documentacionVencidaOFaltante) {
+                NotificationHelper.enviarNotificacion(
+                    applicationContext,
+                    "⛔ Alerta Documentación: ${vehiculo.placa}",
+                    "El vehículo ${vehiculo.placa} no puede circular por falta de documentación (SOAT/Técnico-Mecánica).",
+                    notificationCounter++
+                )
+            }
+
             mantenimientoRepo.evaluarEstadosMantenimientos(vehiculo.id, vehiculo.kilometrajeActual)
             val delVehiculo = mantenimientos.filter { it.vehiculoId == vehiculo.id }
 
