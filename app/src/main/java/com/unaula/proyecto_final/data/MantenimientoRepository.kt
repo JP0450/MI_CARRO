@@ -23,6 +23,69 @@ class MantenimientoRepository(private val context: Context) {
     private val firestore = FirebaseProvider.getFirestore(context)
 
     init {
+        // Cargar datos de muestra iniciales por defecto
+        val unMesMillis = 30L * 24 * 60 * 60 * 1000
+        _programados.value = listOf(
+            MantenimientoProgramado(
+                id = "p1",
+                vehiculoId = "v1",
+                titulo = "Cambio de Aceite de Motor",
+                descripcion = "Aceite sintético 10W-30 y filtro de aceite",
+                criterio = CriterioAlerta.AMBOS,
+                kilometrajeObjetivo = 50000,
+                fechaObjetivo = System.currentTimeMillis() + unMesMillis,
+                frecuenciaKm = 10000,
+                frecuenciaMeses = 6,
+                estado = EstadoMantenimiento.AL_DIA
+            ),
+            MantenimientoProgramado(
+                id = "p2",
+                vehiculoId = "v1",
+                titulo = "Revisión de Frenos",
+                descripcion = "Cambio de pastillas delanteras y rectificación de discos",
+                criterio = CriterioAlerta.KILOMETRAJE,
+                kilometrajeObjetivo = 46000,
+                frecuenciaKm = 20000,
+                estado = EstadoMantenimiento.PROXIMO
+            ),
+            MantenimientoProgramado(
+                id = "p3",
+                vehiculoId = "v2",
+                titulo = "Mantenimiento de Cadena y Kit de Arrastre",
+                descripcion = "Limpieza, lubricación y tensión de cadena",
+                criterio = CriterioAlerta.KILOMETRAJE,
+                kilometrajeObjetivo = 13000,
+                frecuenciaKm = 3000,
+                estado = EstadoMantenimiento.PROXIMO
+            )
+        )
+
+        _realizados.value = listOf(
+            MantenimientoRealizado(
+                id = "r1",
+                vehiculoId = "v1",
+                titulo = "Cambio de Filtro de Aire y Batería",
+                tipo = TipoMantenimiento.PREVENTIVO,
+                taller = "Taller Central Toyota",
+                fecha = System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000),
+                kilometrajeRealizado = 40000,
+                costoTotal = 320000.0,
+                observaciones = "Se cambió batería por garantía expirada",
+                repuestos = listOf(
+                    Repuesto(
+                        id = "rep1",
+                        nombre = "Batería Mac Gold",
+                        marca = "MAC",
+                        costo = 280000.0,
+                        garantiaMeses = 12,
+                        garantiaKm = 20000,
+                        fechaInstalacion = System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000),
+                        kilometrajeInstalacion = 40000
+                    )
+                )
+            )
+        )
+
         loadInitialData()
     }
 
@@ -51,6 +114,8 @@ class MantenimientoRepository(private val context: Context) {
                     }
                     if (list.isNotEmpty()) {
                         _programados.value = list
+                    } else {
+                        migrarProgramadosAFirestore()
                     }
                 }
             }
@@ -60,6 +125,21 @@ class MantenimientoRepository(private val context: Context) {
                 if (error == null && snapshot != null) {
                     val list = snapshot.documents.mapNotNull { doc ->
                         try {
+                            val repuestosList = (doc.get("repuestos") as? List<*>)?.mapNotNull { rMap ->
+                                if (rMap is Map<*, *>) {
+                                    Repuesto(
+                                        id = rMap["id"] as? String ?: "",
+                                        nombre = rMap["nombre"] as? String ?: "",
+                                        marca = rMap["marca"] as? String ?: "",
+                                        costo = (rMap["costo"] as? Number)?.toDouble() ?: 0.0,
+                                        garantiaMeses = (rMap["garantiaMeses"] as? Number)?.toInt() ?: 0,
+                                        garantiaKm = (rMap["garantiaKm"] as? Number)?.toInt() ?: 0,
+                                        fechaInstalacion = (rMap["fechaInstalacion"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+                                        kilometrajeInstalacion = (rMap["kilometrajeInstalacion"] as? Number)?.toInt() ?: 0
+                                    )
+                                } else null
+                            } ?: emptyList()
+
                             MantenimientoRealizado(
                                 id = doc.id,
                                 vehiculoId = doc.getString("vehiculoId") ?: "",
@@ -71,7 +151,8 @@ class MantenimientoRepository(private val context: Context) {
                                 kilometrajeRealizado = (doc.getLong("kilometrajeRealizado") ?: 0).toInt(),
                                 costoTotal = doc.getDouble("costoTotal") ?: 0.0,
                                 observaciones = doc.getString("observaciones") ?: "",
-                                evidenciasUrls = (doc.get("evidenciasUrls") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                                evidenciasUrls = (doc.get("evidenciasUrls") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                                repuestos = repuestosList
                             )
                         } catch (e: Exception) {
                             null
@@ -79,73 +160,57 @@ class MantenimientoRepository(private val context: Context) {
                     }
                     if (list.isNotEmpty()) {
                         _realizados.value = list
+                    } else {
+                        migrarRealizadosAFirestore()
                     }
                 }
             }
+    }
 
-        // Cargar datos de muestra iniciales si no hay
-        if (_programados.value.isEmpty()) {
-            val unMesMillis = 30L * 24 * 60 * 60 * 1000
-            _programados.value = listOf(
-                MantenimientoProgramado(
-                    id = "p1",
-                    vehiculoId = "v1",
-                    titulo = "Cambio de Aceite de Motor",
-                    descripcion = "Aceite sintético 10W-30 y filtro de aceite",
-                    criterio = CriterioAlerta.AMBOS,
-                    kilometrajeObjetivo = 50000,
-                    fechaObjetivo = System.currentTimeMillis() + unMesMillis,
-                    frecuenciaKm = 10000,
-                    frecuenciaMeses = 6,
-                    estado = EstadoMantenimiento.AL_DIA
-                ),
-                MantenimientoProgramado(
-                    id = "p2",
-                    vehiculoId = "v1",
-                    titulo = "Revisión de Frenos",
-                    descripcion = "Cambio de pastillas delanteras y rectificación de discos",
-                    criterio = CriterioAlerta.KILOMETRAJE,
-                    kilometrajeObjetivo = 46000,
-                    frecuenciaKm = 20000,
-                    estado = EstadoMantenimiento.PROXIMO
-                ),
-                MantenimientoProgramado(
-                    id = "p3",
-                    vehiculoId = "v2",
-                    titulo = "Mantenimiento de Cadena y Kit de Arrastre",
-                    descripcion = "Limpieza, lubricación y tensión de cadena",
-                    criterio = CriterioAlerta.KILOMETRAJE,
-                    kilometrajeObjetivo = 13000,
-                    frecuenciaKm = 3000,
-                    estado = EstadoMantenimiento.PROXIMO
+    private fun migrarProgramadosAFirestore() {
+        _programados.value.forEach { item ->
+            firestore?.collection("mantenimientos_programados")?.document(item.id)?.set(
+                mapOf(
+                    "vehiculoId" to item.vehiculoId,
+                    "titulo" to item.titulo,
+                    "descripcion" to item.descripcion,
+                    "criterio" to item.criterio.name,
+                    "kilometrajeObjetivo" to item.kilometrajeObjetivo,
+                    "fechaObjetivo" to item.fechaObjetivo,
+                    "frecuenciaKm" to item.frecuenciaKm,
+                    "frecuenciaMeses" to item.frecuenciaMeses,
+                    "estado" to item.estado.name
                 )
             )
         }
+    }
 
-        if (_realizados.value.isEmpty()) {
-            _realizados.value = listOf(
-                MantenimientoRealizado(
-                    id = "r1",
-                    vehiculoId = "v1",
-                    titulo = "Cambio de Filtro de Aire y Batería",
-                    tipo = TipoMantenimiento.PREVENTIVO,
-                    taller = "Taller Central Toyota",
-                    fecha = System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000),
-                    kilometrajeRealizado = 40000,
-                    costoTotal = 320000.0,
-                    observaciones = "Se cambió batería por garantía expirada",
-                    repuestos = listOf(
-                        Repuesto(
-                            id = "rep1",
-                            nombre = "Batería Mac Gold",
-                            marca = "MAC",
-                            costo = 280000.0,
-                            garantiaMeses = 12,
-                            garantiaKm = 20000,
-                            fechaInstalacion = System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000),
-                            kilometrajeInstalacion = 40000
+    private fun migrarRealizadosAFirestore() {
+        _realizados.value.forEach { item ->
+            firestore?.collection("mantenimientos_realizados")?.document(item.id)?.set(
+                mapOf(
+                    "vehiculoId" to item.vehiculoId,
+                    "mantenimientoProgramadoId" to item.mantenimientoProgramadoId,
+                    "titulo" to item.titulo,
+                    "tipo" to item.tipo.name,
+                    "taller" to item.taller,
+                    "fecha" to item.fecha,
+                    "kilometrajeRealizado" to item.kilometrajeRealizado,
+                    "costoTotal" to item.costoTotal,
+                    "observaciones" to item.observaciones,
+                    "evidenciasUrls" to item.evidenciasUrls,
+                    "repuestos" to item.repuestos.map { rep ->
+                        mapOf(
+                            "id" to rep.id,
+                            "nombre" to rep.nombre,
+                            "marca" to rep.marca,
+                            "costo" to rep.costo,
+                            "garantiaMeses" to rep.garantiaMeses,
+                            "garantiaKm" to rep.garantiaKm,
+                            "fechaInstalacion" to rep.fechaInstalacion,
+                            "kilometrajeInstalacion" to rep.kilometrajeInstalacion
                         )
-                    )
+                    }
                 )
             )
         }
@@ -220,7 +285,19 @@ class MantenimientoRepository(private val context: Context) {
                 "kilometrajeRealizado" to item.kilometrajeRealizado,
                 "costoTotal" to item.costoTotal,
                 "observaciones" to item.observaciones,
-                "evidenciasUrls" to item.evidenciasUrls
+                "evidenciasUrls" to item.evidenciasUrls,
+                "repuestos" to item.repuestos.map { rep ->
+                    mapOf(
+                        "id" to rep.id,
+                        "nombre" to rep.nombre,
+                        "marca" to rep.marca,
+                        "costo" to rep.costo,
+                        "garantiaMeses" to rep.garantiaMeses,
+                        "garantiaKm" to rep.garantiaKm,
+                        "fechaInstalacion" to rep.fechaInstalacion,
+                        "kilometrajeInstalacion" to rep.kilometrajeInstalacion
+                    )
+                }
             )
         )
     }

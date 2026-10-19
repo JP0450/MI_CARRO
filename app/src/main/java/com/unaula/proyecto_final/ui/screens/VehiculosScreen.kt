@@ -1,5 +1,6 @@
 package com.unaula.proyecto_final.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -97,7 +99,8 @@ fun VehiculosScreen(
                     fechaTecno = null
                     tipoVehiculoSeleccionado = TipoVehiculo.AUTOMOVIL
                     showAddDialog = true
-                }
+                },
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Agregar Vehículo")
             }
@@ -112,7 +115,8 @@ fun VehiculosScreen(
             Text(
                 text = "Gestión de Vehículos",
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -120,24 +124,27 @@ fun VehiculosScreen(
             if (vehiculos.isEmpty()) {
                 Text(
                     text = "No hay vehículos registrados. Pulsa + para agregar uno.",
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             } else {
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.imePadding()
                 ) {
                     items(vehiculos) { vehiculo ->
                         val hasDocError = vehiculo.documentacionVencidaOFaltante
                         val cardBg = if (hasDocError) {
-                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                            MaterialTheme.colorScheme.errorContainer
                         } else {
                             MaterialTheme.colorScheme.surfaceVariant
                         }
 
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = cardBg)
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = cardBg),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                         ) {
                             Row(
                                 modifier = Modifier
@@ -225,6 +232,7 @@ fun VehiculosScreen(
                             readOnly = true,
                             label = { Text("Tipo de Vehículo") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = tipoDropdownExpanded) },
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
                         ExposedDropdownMenu(
@@ -256,6 +264,7 @@ fun VehiculosScreen(
                         onValueChange = { placaText = it },
                         label = { Text("Placa (Ej. ABC-123)") },
                         singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -274,6 +283,7 @@ fun VehiculosScreen(
                             readOnly = true,
                             label = { Text("Marca") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = marcaDropdownExpanded) },
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
                         ExposedDropdownMenu(
@@ -307,6 +317,7 @@ fun VehiculosScreen(
                             onValueChange = { marcaText = it },
                             label = { Text("Escribe la Marca manualmente") },
                             singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -326,6 +337,7 @@ fun VehiculosScreen(
                             readOnly = true,
                             label = { Text("Modelo") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modeloDropdownExpanded) },
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
                         ExposedDropdownMenu(
@@ -357,6 +369,7 @@ fun VehiculosScreen(
                             onValueChange = { modeloText = it },
                             label = { Text("Escribe el Modelo manualmente") },
                             singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -370,6 +383,7 @@ fun VehiculosScreen(
                             label = { Text("Año") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
@@ -378,6 +392,7 @@ fun VehiculosScreen(
                             label = { Text("KM Actual") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -427,7 +442,8 @@ fun VehiculosScreen(
                             )
                             showAddDialog = false
                         }
-                    }
+                    },
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Guardar")
                 }

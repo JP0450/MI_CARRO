@@ -16,6 +16,33 @@ class VehiculoRepository(private val context: Context) {
     private val firestore = FirebaseProvider.getFirestore(context)
 
     init {
+        // Cargar vehículos locales por defecto
+        val unAnioAdelante = System.currentTimeMillis() + (365L * 24 * 60 * 60 * 1000)
+        _vehiculos.value = listOf(
+            Vehiculo(
+                id = "v1",
+                placa = "ABC-123",
+                marca = "Toyota",
+                modelo = "Corolla",
+                anio = 2021,
+                tipo = TipoVehiculo.AUTOMOVIL,
+                kilometrajeActual = 45200,
+                fechaSeguroSoat = unAnioAdelante,
+                fechaTecnoMecanica = unAnioAdelante
+            ),
+            Vehiculo(
+                id = "v2",
+                placa = "XYZ-789",
+                marca = "Yamaha",
+                modelo = "FZ 25",
+                anio = 2023,
+                tipo = TipoVehiculo.MOTOCICLETA,
+                kilometrajeActual = 12500,
+                fechaSeguroSoat = null,
+                fechaTecnoMecanica = null
+            )
+        )
+
         loadInitialData()
     }
 
@@ -23,6 +50,9 @@ class VehiculoRepository(private val context: Context) {
         if (firestore != null) {
             firestore.collection("vehiculos")
                 .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        error.printStackTrace()
+                    }
                     if (error == null && snapshot != null) {
                         val list = snapshot.documents.mapNotNull { doc ->
                             try {
@@ -46,36 +76,30 @@ class VehiculoRepository(private val context: Context) {
                         }
                         if (list.isNotEmpty()) {
                             _vehiculos.value = list
+                        } else {
+                            // Si la colección remota de Firestore está vacía, subir los datos actuales a la nube
+                            migrarVehiculosAFirestore()
                         }
                     }
                 }
         }
+    }
 
-        // Si está vacío, agregar datos de muestra locales para prueba inicial
-        if (_vehiculos.value.isEmpty()) {
-            val unAnioAdelante = System.currentTimeMillis() + (365L * 24 * 60 * 60 * 1000)
-            _vehiculos.value = listOf(
-                Vehiculo(
-                    id = "v1",
-                    placa = "ABC-123",
-                    marca = "Toyota",
-                    modelo = "Corolla",
-                    anio = 2021,
-                    tipo = TipoVehiculo.AUTOMOVIL,
-                    kilometrajeActual = 45200,
-                    fechaSeguroSoat = unAnioAdelante,
-                    fechaTecnoMecanica = unAnioAdelante
-                ),
-                Vehiculo(
-                    id = "v2",
-                    placa = "XYZ-789",
-                    marca = "Yamaha",
-                    modelo = "FZ 25",
-                    anio = 2023,
-                    tipo = TipoVehiculo.MOTOCICLETA,
-                    kilometrajeActual = 12500,
-                    fechaSeguroSoat = null, // Para demostrar alerta de documentación faltante
-                    fechaTecnoMecanica = null
+    private fun migrarVehiculosAFirestore() {
+        val currentList = _vehiculos.value
+        currentList.forEach { vehiculo ->
+            firestore?.collection("vehiculos")?.document(vehiculo.id)?.set(
+                mapOf(
+                    "placa" to vehiculo.placa,
+                    "marca" to vehiculo.marca,
+                    "modelo" to vehiculo.modelo,
+                    "anio" to vehiculo.anio,
+                    "tipo" to vehiculo.tipo.name,
+                    "kilometrajeActual" to vehiculo.kilometrajeActual,
+                    "fechaSeguroSoat" to vehiculo.fechaSeguroSoat,
+                    "fechaTecnoMecanica" to vehiculo.fechaTecnoMecanica,
+                    "fotoUrl" to vehiculo.fotoUrl,
+                    "fechaActualizacionKm" to vehiculo.fechaActualizacionKm
                 )
             )
         }
