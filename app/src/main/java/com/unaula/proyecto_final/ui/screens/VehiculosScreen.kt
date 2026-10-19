@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.unaula.proyecto_final.data.CatalogoVehiculos
 import com.unaula.proyecto_final.model.TipoVehiculo
 import com.unaula.proyecto_final.model.Vehiculo
 import com.unaula.proyecto_final.ui.components.DatePickerField
@@ -68,12 +69,18 @@ fun VehiculosScreen(
     var placaText by remember { mutableStateOf("") }
     var marcaText by remember { mutableStateOf("") }
     var modeloText by remember { mutableStateOf("") }
+    var esMarcaManual by remember { mutableStateOf(false) }
+    var esModeloManual by remember { mutableStateOf(false) }
+
     var anioText by remember { mutableStateOf("2023") }
     var kmText by remember { mutableStateOf("0") }
     var fechaSoat by remember { mutableStateOf<Long?>(null) }
     var fechaTecno by remember { mutableStateOf<Long?>(null) }
     var tipoVehiculoSeleccionado by remember { mutableStateOf(TipoVehiculo.AUTOMOVIL) }
-    var dropdownExpanded by remember { mutableStateOf(false) }
+
+    var tipoDropdownExpanded by remember { mutableStateOf(false) }
+    var marcaDropdownExpanded by remember { mutableStateOf(false) }
+    var modeloDropdownExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         floatingActionButton = {
@@ -82,6 +89,8 @@ fun VehiculosScreen(
                     placaText = ""
                     marcaText = ""
                     modeloText = ""
+                    esMarcaManual = false
+                    esModeloManual = false
                     anioText = "2023"
                     kmText = "0"
                     fechaSoat = null
@@ -205,28 +214,35 @@ fun VehiculosScreen(
                         .imePadding()
                         .padding(vertical = 8.dp)
                 ) {
+                    // Selector de Tipo de Vehículo
                     ExposedDropdownMenuBox(
-                        expanded = dropdownExpanded,
-                        onExpandedChange = { dropdownExpanded = !dropdownExpanded }
+                        expanded = tipoDropdownExpanded,
+                        onExpandedChange = { tipoDropdownExpanded = !tipoDropdownExpanded }
                     ) {
                         OutlinedTextField(
                             value = tipoVehiculoSeleccionado.label,
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Tipo de Vehículo") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = tipoDropdownExpanded) },
                             modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
                         ExposedDropdownMenu(
-                            expanded = dropdownExpanded,
-                            onDismissRequest = { dropdownExpanded = false }
+                            expanded = tipoDropdownExpanded,
+                            onDismissRequest = { tipoDropdownExpanded = false }
                         ) {
                             TipoVehiculo.entries.forEach { tipo ->
                                 DropdownMenuItem(
                                     text = { Text(tipo.label) },
                                     onClick = {
-                                        tipoVehiculoSeleccionado = tipo
-                                        dropdownExpanded = false
+                                        if (tipoVehiculoSeleccionado != tipo) {
+                                            tipoVehiculoSeleccionado = tipo
+                                            marcaText = ""
+                                            modeloText = ""
+                                            esMarcaManual = false
+                                            esModeloManual = false
+                                        }
+                                        tipoDropdownExpanded = false
                                     }
                                 )
                             }
@@ -245,23 +261,105 @@ fun VehiculosScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    OutlinedTextField(
-                        value = marcaText,
-                        onValueChange = { marcaText = it },
-                        label = { Text("Marca (Ej. Toyota, Yamaha)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    // Selector de Marca
+                    val marcasDisponibles = CatalogoVehiculos.obtenerMarcas(tipoVehiculoSeleccionado)
+
+                    ExposedDropdownMenuBox(
+                        expanded = marcaDropdownExpanded,
+                        onExpandedChange = { marcaDropdownExpanded = !marcaDropdownExpanded }
+                    ) {
+                        OutlinedTextField(
+                            value = if (esMarcaManual) "Otra (Manual)" else marcaText.ifBlank { "Seleccionar Marca" },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Marca") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = marcaDropdownExpanded) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = marcaDropdownExpanded,
+                            onDismissRequest = { marcaDropdownExpanded = false }
+                        ) {
+                            marcasDisponibles.forEach { m ->
+                                DropdownMenuItem(
+                                    text = { Text(m) },
+                                    onClick = {
+                                        if (m == "Otra (Manual)") {
+                                            esMarcaManual = true
+                                            marcaText = ""
+                                        } else {
+                                            esMarcaManual = false
+                                            marcaText = m
+                                            modeloText = ""
+                                            esModeloManual = false
+                                        }
+                                        marcaDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    if (esMarcaManual) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        OutlinedTextField(
+                            value = marcaText,
+                            onValueChange = { marcaText = it },
+                            label = { Text("Escribe la Marca manualmente") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    OutlinedTextField(
-                        value = modeloText,
-                        onValueChange = { modeloText = it },
-                        label = { Text("Modelo (Ej. Corolla, FZ 25)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    // Selector de Modelo
+                    val modelosDisponibles = CatalogoVehiculos.obtenerModelos(tipoVehiculoSeleccionado, marcaText)
+
+                    ExposedDropdownMenuBox(
+                        expanded = modeloDropdownExpanded,
+                        onExpandedChange = { modeloDropdownExpanded = !modeloDropdownExpanded }
+                    ) {
+                        OutlinedTextField(
+                            value = if (esModeloManual) "Otro (Manual)" else modeloText.ifBlank { "Seleccionar Modelo" },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Modelo") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modeloDropdownExpanded) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = modeloDropdownExpanded,
+                            onDismissRequest = { modeloDropdownExpanded = false }
+                        ) {
+                            modelosDisponibles.forEach { mod ->
+                                DropdownMenuItem(
+                                    text = { Text(mod) },
+                                    onClick = {
+                                        if (mod == "Otro (Manual)") {
+                                            esModeloManual = true
+                                            modeloText = ""
+                                        } else {
+                                            esModeloManual = false
+                                            modeloText = mod
+                                        }
+                                        modeloDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    if (esModeloManual) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        OutlinedTextField(
+                            value = modeloText,
+                            onValueChange = { modeloText = it },
+                            label = { Text("Escribe el Modelo manualmente") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
