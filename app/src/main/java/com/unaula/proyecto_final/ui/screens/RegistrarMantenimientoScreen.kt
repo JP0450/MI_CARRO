@@ -6,19 +6,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
@@ -34,7 +31,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -65,7 +61,6 @@ fun RegistrarMantenimientoScreen(
     val vehiculoSeleccionado by vehiculoViewModel.vehiculoSeleccionado.collectAsState()
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val isImeVisible = WindowInsets.isImeVisible
 
     var tituloText by remember { mutableStateOf("") }
     var tallerText by remember { mutableStateOf("") }
@@ -87,18 +82,8 @@ fun RegistrarMantenimientoScreen(
     var repGarantiaKm by remember { mutableStateOf("10000") }
 
     Scaffold(
-        topBar = {
-            if (!isLandscape || !isImeVisible) {
-                TopAppBar(
-                    title = { Text("Registrar Mantenimiento Realizado") },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
-                        }
-                    }
-                )
-            }
-        }
+        containerColor = androidx.compose.ui.graphics.Color.White,
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -108,24 +93,32 @@ fun RegistrarMantenimientoScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             item {
-                Row(
+                Text(
+                    text = "Registrar servicio",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = com.unaula.proyecto_final.ui.theme.ColorDeepGreen
+                )
+                Text(
+                    text = "Guarda los detalles del mantenimiento realizado",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = com.unaula.proyecto_final.ui.theme.ColorTextSecondary
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = com.unaula.proyecto_final.ui.theme.ColorMintAqua
+                    )
                 ) {
                     Text(
-                        text = "Vehículo: ${vehiculoSeleccionado?.marca} ${vehiculoSeleccionado?.modelo} (${vehiculoSeleccionado?.placa})",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
+                        text = "Vehículo: ${vehiculoSeleccionado?.marca ?: "Sin"} ${vehiculoSeleccionado?.modelo ?: "seleccionar"} (${vehiculoSeleccionado?.placa ?: "—"})",
+                        modifier = Modifier.padding(14.dp),
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleSmall
                     )
-
-                    if (isLandscape && isImeVisible) {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
-                        }
-                    }
                 }
-
                 Spacer(modifier = Modifier.height(10.dp))
 
                 if (isLandscape) {

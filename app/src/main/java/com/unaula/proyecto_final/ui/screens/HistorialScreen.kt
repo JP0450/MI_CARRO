@@ -47,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.unaula.proyecto_final.model.MantenimientoRealizado
 import com.unaula.proyecto_final.model.TipoMantenimiento
+import com.unaula.proyecto_final.ui.theme.ColorDeepGreen
+import com.unaula.proyecto_final.ui.theme.ColorTextSecondary
 import com.unaula.proyecto_final.ui.viewmodel.MantenimientoViewModel
 import com.unaula.proyecto_final.ui.viewmodel.VehiculoViewModel
 import java.text.SimpleDateFormat
@@ -86,15 +88,22 @@ fun HistorialScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .background(androidx.compose.ui.graphics.Color.White)
             .imePadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             Text(
-                text = "Historial de Mantenimientos",
+                text = "Historial y auditoría",
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = ColorDeepGreen
+            )
+            Text(
+                text = "Consulta los servicios y el seguimiento de tu flota",
+                style = MaterialTheme.typography.bodyMedium,
+                color = ColorTextSecondary
             )
         }
 
@@ -191,6 +200,17 @@ fun HistorialScreen(
         }
 
         item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Registros", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("${historialFiltrado.size} encontrados", style = MaterialTheme.typography.labelMedium, color = ColorTextSecondary)
+            }
+        }
+
+        item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = filtroTipo == null,
@@ -238,7 +258,13 @@ fun ItemHistorialCard(item: MantenimientoRealizado) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { expanded = !expanded },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(

@@ -1,6 +1,7 @@
 package com.unaula.proyecto_final.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -53,6 +54,9 @@ import com.unaula.proyecto_final.data.CatalogoVehiculos
 import com.unaula.proyecto_final.model.TipoVehiculo
 import com.unaula.proyecto_final.model.Vehiculo
 import com.unaula.proyecto_final.ui.components.DatePickerField
+import com.unaula.proyecto_final.ui.theme.ColorBurgundy
+import com.unaula.proyecto_final.ui.theme.ColorDeepGreen
+import com.unaula.proyecto_final.ui.theme.ColorTextSecondary
 import com.unaula.proyecto_final.ui.viewmodel.VehiculoViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -85,6 +89,8 @@ fun VehiculosScreen(
     var modeloDropdownExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.White,
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
@@ -113,13 +119,18 @@ fun VehiculosScreen(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Gestión de Vehículos",
+                text = "Gestión de vehículos",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = ColorDeepGreen
+            )
+            Text(
+                text = "Administra tu inventario y documentación",
+                style = MaterialTheme.typography.bodyMedium,
+                color = ColorTextSecondary
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             if (vehiculos.isEmpty()) {
                 Text(
@@ -128,23 +139,39 @@ fun VehiculosScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
             } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Inventario",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${vehiculos.size} vehículos",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = ColorTextSecondary
+                    )
+                }
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.imePadding()
                 ) {
                     items(vehiculos) { vehiculo ->
                         val hasDocError = vehiculo.documentacionVencidaOFaltante
-                        val cardBg = if (hasDocError) {
-                            MaterialTheme.colorScheme.errorContainer
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        }
-
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(containerColor = cardBg),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White),
+                            border = BorderStroke(
+                                1.dp,
+                                if (hasDocError) MaterialTheme.colorScheme.error.copy(alpha = 0.55f)
+                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
+                            )
                         ) {
                             Row(
                                 modifier = Modifier
@@ -160,8 +187,14 @@ fun VehiculosScreen(
                                     Icon(
                                         imageVector = if (vehiculo.tipo == TipoVehiculo.MOTOCICLETA) Icons.Default.TwoWheeler else Icons.Default.DirectionsCar,
                                         contentDescription = vehiculo.tipo.label,
-                                        modifier = Modifier.height(36.dp),
-                                        tint = MaterialTheme.colorScheme.primary
+                                        modifier = Modifier
+                                            .height(38.dp)
+                                            .background(
+                                                ColorBurgundy.copy(alpha = 0.12f),
+                                                RoundedCornerShape(12.dp)
+                                            )
+                                            .padding(8.dp),
+                                        tint = ColorDeepGreen
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
@@ -177,6 +210,12 @@ fun VehiculosScreen(
                                         Text(
                                             text = "KM: ${vehiculo.kilometrajeActual} km",
                                             style = MaterialTheme.typography.bodySmall
+                                        )
+                                        Text(
+                                            text = if (hasDocError) "DOCUMENTACIÓN PENDIENTE" else "HABILITADO",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (hasDocError) MaterialTheme.colorScheme.error else androidx.compose.ui.graphics.Color(0xFF205426)
                                         )
 
                                         Spacer(modifier = Modifier.height(4.dp))

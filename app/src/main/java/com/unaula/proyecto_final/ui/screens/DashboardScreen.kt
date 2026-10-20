@@ -1,5 +1,11 @@
 package com.unaula.proyecto_final.ui.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -56,8 +62,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -65,6 +69,8 @@ import androidx.compose.ui.unit.sp
 import com.unaula.proyecto_final.model.EstadoMantenimiento
 import com.unaula.proyecto_final.model.MantenimientoProgramado
 import com.unaula.proyecto_final.model.TipoVehiculo
+import com.unaula.proyecto_final.ui.theme.ColorDeepGreen
+import com.unaula.proyecto_final.ui.theme.ColorTextSecondary
 import com.unaula.proyecto_final.ui.viewmodel.MantenimientoViewModel
 import com.unaula.proyecto_final.ui.viewmodel.VehiculoViewModel
 import java.text.SimpleDateFormat
@@ -107,7 +113,7 @@ fun DashboardScreen(
     val estadoGeneralColor = when {
         docVencidaOFaltante || mantenimientosVencidos > 0 -> MaterialTheme.colorScheme.error
         mantenimientosProximos > 0 -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.primary
+        else -> com.unaula.proyecto_final.ui.theme.ColorNeonGreen
     }
 
     val estadoGeneralTexto = when {
@@ -116,20 +122,33 @@ fun DashboardScreen(
         mantenimientosProximos > 0 -> "Próximo a Vencer"
         else -> "Al día"
     }
+    val vehiculosHabilitados = vehiculos.count { !it.documentacionVencidaOFaltante }
+    val alertasActivas = mantenimientosProximos + mantenimientosVencidos +
+        if (docVencidaOFaltante) 1 else 0
+    val fechaActual = remember {
+        SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-CO"))
+            .format(Date())
+    }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .background(androidx.compose.ui.graphics.Color.White)
             .imePadding()
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
             Text(
-                text = "Panel de Control",
+                text = "Tu flota, bajo control",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = ColorDeepGreen
+            )
+            Text(
+                text = fechaActual.replaceFirstChar { it.uppercase() },
+                style = MaterialTheme.typography.bodyMedium,
+                color = ColorTextSecondary
             )
         }
 
@@ -198,108 +217,117 @@ fun DashboardScreen(
 
             vehiculoSeleccionado?.let { v ->
                 item {
-                    // Tarjeta Principal del Vehículo estilo Minimalista Figma
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                    ) {
-                        Column(modifier = Modifier.padding(18.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Animación suave al cambiar de vehículo
+                    AnimatedContent(
+                        targetState = v,
+                        label = "TransicionVehiculo",
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(300)) + slideInVertically { it / 8 } togetherWith
+                                    fadeOut(animationSpec = tween(200))
+                        }
+                    ) { vehiculo ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                        ) {
+                            Column(modifier = Modifier.padding(18.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .clip(CircleShape)
+                                                .background(ColorDeepGreen.copy(alpha = 0.12f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = if (vehiculo.tipo == TipoVehiculo.MOTOCICLETA) Icons.Default.TwoWheeler else Icons.Default.DirectionsCar,
+                                                contentDescription = vehiculo.tipo.label,
+                                                modifier = Modifier.size(28.dp),
+                                                tint = ColorDeepGreen
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column {
+                                            Text(
+                                                text = "${vehiculo.marca} ${vehiculo.modelo}",
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Bold,
+                                                color = ColorDeepGreen
+                                            )
+                                            Text(
+                                                text = "Placa: ${vehiculo.placa} • ${vehiculo.tipo.label}",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = ColorDeepGreen.copy(alpha = 0.82f)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(14.dp))
+
+                                // Kilometraje actual con botón de edición rápida
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Speed, contentDescription = null, tint = ColorDeepGreen)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "${vehiculo.kilometrajeActual} km",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = ColorDeepGreen
+                                        )
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            nuevoKmText = vehiculo.kilometrajeActual.toString()
+                                            showKmDialog = true
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                        border = BorderStroke(1.dp, ColorDeepGreen.copy(alpha = 0.4f))
+                                    ) {
+                                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp), tint = ColorDeepGreen)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Actualizar", color = ColorDeepGreen)
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                // Indicador Semáforo Estado Pill
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(estadoGeneralColor.copy(alpha = 0.18f))
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(48.dp)
+                                            .size(8.dp)
                                             .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = if (v.tipo == TipoVehiculo.MOTOCICLETA) Icons.Default.TwoWheeler else Icons.Default.DirectionsCar,
-                                            contentDescription = v.tipo.label,
-                                            modifier = Modifier.size(28.dp),
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
-                                        Text(
-                                            text = "${v.marca} ${v.modelo}",
-                                            style = MaterialTheme.typography.titleLarge,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                        Text(
-                                            text = "Placa: ${v.placa} • ${v.tipo.label}",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                                        )
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            // Kilometraje actual con botón de edición rápida estilo Pill
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Speed, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                            .background(estadoGeneralColor)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "${v.kilometrajeActual} km",
-                                        style = MaterialTheme.typography.titleMedium,
+                                        text = estadoGeneralTexto,
+                                        color = estadoGeneralColor,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        fontSize = 12.sp
                                     )
                                 }
-
-                                OutlinedButton(
-                                    onClick = {
-                                        nuevoKmText = v.kilometrajeActual.toString()
-                                        showKmDialog = true
-                                    },
-                                    shape = RoundedCornerShape(12.dp),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f))
-                                ) {
-                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Actualizar", color = MaterialTheme.colorScheme.onPrimaryContainer)
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // Indicador Semáforo Estado Pill con punto brillante
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .background(estadoGeneralColor.copy(alpha = 0.18f))
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(estadoGeneralColor)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = estadoGeneralTexto,
-                                    color = estadoGeneralColor,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
-                                )
                             }
                         }
                     }
@@ -389,14 +417,53 @@ fun DashboardScreen(
                 }
 
                 item {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Alertas de Mantenimiento",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        DashboardStat(
+                            modifier = Modifier.weight(1f),
+                            value = vehiculos.size.toString().padStart(2, '0'),
+                            label = "Vehículos",
+                            valueColor = ColorDeepGreen
                         )
+                        DashboardStat(
+                            modifier = Modifier.weight(1f),
+                            value = vehiculosHabilitados.toString().padStart(2, '0'),
+                            label = "Habilitados",
+                            valueColor = androidx.compose.ui.graphics.Color(0xFF205426)
+                        )
+                        DashboardStat(
+                            modifier = Modifier.weight(1f),
+                            value = (vehiculos.size - vehiculosHabilitados).toString().padStart(2, '0'),
+                            label = "Bloqueados",
+                            valueColor = androidx.compose.ui.graphics.Color(0xFFB52E43)
+                        )
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Requieren tu atención",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        if (alertasActivas > 0) {
+                            Text(
+                                text = "$alertasActivas alertas",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ColorTextSecondary
+                            )
+                        }
                     }
                 }
 
@@ -470,6 +537,31 @@ fun DashboardScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun DashboardStat(
+    modifier: Modifier = Modifier,
+    value: String,
+    label: String,
+    valueColor: androidx.compose.ui.graphics.Color
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = valueColor)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = ColorTextSecondary, maxLines = 1)
+        }
     }
 }
 

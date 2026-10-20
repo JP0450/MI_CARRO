@@ -1,23 +1,32 @@
 package com.unaula.proyecto_final.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -30,17 +39,20 @@ import com.unaula.proyecto_final.ui.screens.ProgramarMantenimientoScreen
 import com.unaula.proyecto_final.ui.screens.RegistrarMantenimientoScreen
 import com.unaula.proyecto_final.ui.screens.ReportesScreen
 import com.unaula.proyecto_final.ui.screens.VehiculosScreen
+import com.unaula.proyecto_final.ui.components.AppBrandBar
 import com.unaula.proyecto_final.ui.viewmodel.MantenimientoViewModel
 import com.unaula.proyecto_final.ui.viewmodel.ReportesViewModel
 import com.unaula.proyecto_final.ui.viewmodel.VehiculoViewModel
+import com.unaula.proyecto_final.ui.theme.ColorDeepBlue
+import com.unaula.proyecto_final.ui.theme.ColorTextSecondary
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector? = null) {
-    object Dashboard : Screen("dashboard", "Inicio", Icons.Default.Home)
-    object Vehiculos : Screen("vehiculos", "Vehículos", Icons.Default.DirectionsCar)
+    object Dashboard : Screen("dashboard", "Inicio", Icons.Outlined.Dashboard)
+    object Vehiculos : Screen("vehiculos", "Vehículos", Icons.Outlined.DirectionsCar)
     object ProgramarMantenimiento : Screen("programar_mantenimiento", "Programar")
     object RegistrarMantenimiento : Screen("registrar_mantenimiento", "Registrar")
-    object Historial : Screen("historial", "Historial", Icons.Default.Build)
-    object Reportes : Screen("reportes", "Reportes", Icons.Default.Analytics)
+    object Historial : Screen("historial", "Historial", Icons.AutoMirrored.Filled.Assignment)
+    object Reportes : Screen("reportes", "Reportes", Icons.Outlined.Analytics)
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -62,11 +74,28 @@ fun AppNavigation(
         Screen.Historial,
         Screen.Reportes
     )
+    val isFormRoute = currentRoute == Screen.ProgramarMantenimiento.route ||
+        currentRoute == Screen.RegistrarMantenimiento.route
 
     Scaffold(
+        containerColor = Color.White,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = {
+            AppBrandBar(
+                onBack = if (isFormRoute) {
+                    { navController.popBackStack() }
+                } else {
+                    null
+                }
+            )
+        },
         bottomBar = {
             if (!isImeVisible && currentRoute in bottomNavItems.map { it.route }) {
-                NavigationBar {
+                NavigationBar(
+                    containerColor = Color.White,
+                    contentColor = ColorTextSecondary,
+                    tonalElevation = 0.dp
+                ) {
                     bottomNavItems.forEach { screen ->
                         NavigationBarItem(
                             icon = {
@@ -75,6 +104,13 @@ fun AppNavigation(
                                 }
                             },
                             label = { Text(screen.title) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = ColorDeepBlue,
+                                selectedTextColor = ColorDeepBlue,
+                                indicatorColor = androidx.compose.ui.graphics.Color(0xFFEAF3FF),
+                                unselectedIconColor = ColorTextSecondary,
+                                unselectedTextColor = ColorTextSecondary
+                            ),
                             selected = currentRoute == screen.route,
                             onClick = {
                                 navController.navigate(screen.route) {
@@ -94,7 +130,11 @@ fun AppNavigation(
         NavHost(
             navController = navController,
             startDestination = Screen.Dashboard.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
+            enterTransition = { fadeIn(animationSpec = tween(300)) + slideInVertically { it / 10 } },
+            exitTransition = { fadeOut(animationSpec = tween(200)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { fadeOut(animationSpec = tween(200)) + slideOutVertically { it / 10 } }
         ) {
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
@@ -133,6 +173,7 @@ fun AppNavigation(
             composable(Screen.Reportes.route) {
                 ReportesScreen(
                     vehiculoViewModel = vehiculoViewModel,
+                    mantenimientoViewModel = mantenimientoViewModel,
                     reportesViewModel = reportesViewModel
                 )
             }
