@@ -19,9 +19,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -32,9 +34,12 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -43,16 +48,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.unaula.proyecto_final.model.MantenimientoRealizado
 import com.unaula.proyecto_final.model.TipoMantenimiento
 import com.unaula.proyecto_final.ui.theme.ColorDeepGreen
-import com.unaula.proyecto_final.ui.theme.ColorMintAqua
 import com.unaula.proyecto_final.ui.theme.ColorTextSecondary
 import com.unaula.proyecto_final.ui.viewmodel.MantenimientoViewModel
 import com.unaula.proyecto_final.ui.viewmodel.VehiculoViewModel
@@ -60,7 +64,6 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,6 +73,7 @@ fun HistorialScreen(
 ) {
     val vehiculos by vehiculoViewModel.vehiculos.collectAsState()
     val realizados by mantenimientoViewModel.realizados.collectAsState()
+    val categorias by mantenimientoViewModel.categorias.collectAsState()
     val context = LocalContext.current
 
     val configuration = LocalConfiguration.current
@@ -78,9 +82,19 @@ fun HistorialScreen(
     var searchQuery by remember { mutableStateOf("") }
     var filtroTipo by remember { mutableStateOf<TipoMantenimiento?>(null) }
     var filtroVehiculoId by remember { mutableStateOf<String?>(null) }
-    var dropdownExpanded by remember { mutableStateOf(false) }
+    var filtroCategoria by remember { mutableStateOf<String?>(null) }
+    var filtroTaller by remember { mutableStateOf("") }
+    var filtroCostoMin by remember { mutableStateOf("") }
+    var filtroCostoMax by remember { mutableStateOf("") }
 
-    val historialFiltrado = remember(realizados, filtroVehiculoId, searchQuery, filtroTipo) {
+    var dropdownExpanded by remember { mutableStateOf(false) }
+    var categoriaDropdownExpanded by remember { mutableStateOf(false) }
+    var showAdvancedFilters by remember { mutableStateOf(false) }
+
+    val historialFiltrado = remember(
+        realizados, filtroVehiculoId, searchQuery, filtroTipo,
+        filtroCategoria, filtroTaller, filtroCostoMin, filtroCostoMax
+    ) {
         realizados.filter { item ->
             val coincideVehiculo = filtroVehiculoId == null || item.vehiculoId == filtroVehiculoId
             val coincideSearch = searchQuery.isBlank() ||
@@ -88,8 +102,13 @@ fun HistorialScreen(
                     item.taller.contains(searchQuery, ignoreCase = true) ||
                     item.observaciones.contains(searchQuery, ignoreCase = true)
             val coincideTipo = filtroTipo == null || item.tipo == filtroTipo
+            val coincideCat = filtroCategoria == null || item.categoria == filtroCategoria
+            val coincideTaller = filtroTaller.isBlank() || item.taller.contains(filtroTaller, ignoreCase = true)
+            val minCosto = filtroCostoMin.toDoubleOrNull() ?: 0.0
+            val maxCosto = filtroCostoMax.toDoubleOrNull() ?: Double.MAX_VALUE
+            val coincideCosto = item.costoTotal in minCosto..maxCosto
 
-            coincideVehiculo && coincideSearch && coincideTipo
+            coincideVehiculo && coincideSearch && coincideTipo && coincideCat && coincideTaller && coincideCosto
         }
     }
 
@@ -117,7 +136,7 @@ fun HistorialScreen(
                         color = ColorDeepGreen
                     )
                     Text(
-                        text = "Consulta los servicios y exporta tu historial",
+                        text = "Consulta servicios, filtros cruzados y exporta CSV",
                         style = MaterialTheme.typography.bodyMedium,
                         color = ColorTextSecondary
                     )
@@ -126,10 +145,10 @@ fun HistorialScreen(
                 Button(
                     onClick = {
                         val csvBuilder = StringBuilder()
-                        csvBuilder.append("ID,VehiculoId,Titulo,Tipo,Taller,Fecha,Kilometraje,CostoTotal,Observaciones\n")
+                        csvBuilder.append("ID,VehiculoId,Titulo,Categoria,Tipo,Taller,Fecha,Kilometraje,CostoTotal,Observaciones\n")
                         historialFiltrado.forEach { h ->
                             val fechaStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(h.fecha))
-                            csvBuilder.append("${h.id},${h.vehiculoId},\"${h.titulo}\",${h.tipo},\"${h.taller}\",$fechaStr,${h.kilometrajeRealizado},${h.costoTotal},\"${h.observaciones}\"\n")
+                            csvBuilder.append("${h.id},${h.vehiculoId},\"${h.titulo}\",${h.categoria},${h.tipo},\"${h.taller}\",$fechaStr,${h.kilometrajeRealizado},${h.costoTotal},\"${h.observaciones}\"\n")
                         }
                         val sendIntent = Intent().apply {
                             action = Intent.ACTION_SEND
@@ -147,75 +166,38 @@ fun HistorialScreen(
             }
         }
 
-        if (isLandscape) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    if (vehiculos.isNotEmpty()) {
-                        ExposedDropdownMenuBox(
-                            expanded = dropdownExpanded,
-                            onExpandedChange = { dropdownExpanded = !dropdownExpanded },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            OutlinedTextField(
-                                value = vehiculoFiltroActual?.let { "${it.marca} ${it.modelo} (${it.placa})" } ?: "Todos los vehículos",
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Filtrar Vehículo") },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
-                                modifier = Modifier.menuAnchor().fillMaxWidth()
-                            )
-                            ExposedDropdownMenu(
-                                expanded = dropdownExpanded,
-                                onDismissRequest = { dropdownExpanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Todos los vehículos") },
-                                    onClick = {
-                                        filtroVehiculoId = null
-                                        dropdownExpanded = false
-                                    }
-                                )
-                                vehiculos.forEach { vehiculo ->
-                                    DropdownMenuItem(
-                                        text = { Text("${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa})") },
-                                        onClick = {
-                                            filtroVehiculoId = vehiculo.id
-                                            dropdownExpanded = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
+        item {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("Búsqueda general") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            )
+        }
 
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        label = { Text("Buscar servicio / taller") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                }
-            }
-        } else {
-            item {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 if (vehiculos.isNotEmpty()) {
                     ExposedDropdownMenuBox(
                         expanded = dropdownExpanded,
-                        onExpandedChange = { dropdownExpanded = !dropdownExpanded }
+                        onExpandedChange = { dropdownExpanded = !dropdownExpanded },
+                        modifier = Modifier.weight(1f)
                     ) {
                         OutlinedTextField(
                             value = vehiculoFiltroActual?.let { "${it.marca} ${it.modelo} (${it.placa})" } ?: "Todos los vehículos",
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Filtrar Vehículo") },
+                            label = { Text("Vehículo") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth()
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
                         )
                         ExposedDropdownMenu(
                             expanded = dropdownExpanded,
@@ -239,18 +221,124 @@ fun HistorialScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    label = { Text("Buscar servicio / taller / observaciones") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    singleLine = true,
+                Spacer(modifier = Modifier.width(8.dp))
+
+                OutlinedButton(
+                    onClick = { showAdvancedFilters = !showAdvancedFilters },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.height(56.dp)
+                ) {
+                    Icon(Icons.Default.FilterList, contentDescription = null)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(if (showAdvancedFilters) "Ocultar Filtros" else "Filtros Avanzados")
+                }
+            }
+        }
+
+        item {
+            AnimatedVisibility(visible = showAdvancedFilters) {
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "Filtros Cruzados Avanzados (RF-35)",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        // Categoría
+                        ExposedDropdownMenuBox(
+                            expanded = categoriaDropdownExpanded,
+                            onExpandedChange = { categoriaDropdownExpanded = !categoriaDropdownExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = filtroCategoria ?: "Todas las categorías",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Filtrar por Categoría") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoriaDropdownExpanded) },
+                                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            ExposedDropdownMenu(
+                                expanded = categoriaDropdownExpanded,
+                                onDismissRequest = { categoriaDropdownExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Todas las categorías") },
+                                    onClick = {
+                                        filtroCategoria = null
+                                        categoriaDropdownExpanded = false
+                                    }
+                                )
+                                categorias.forEach { cat ->
+                                    DropdownMenuItem(
+                                        text = { Text(cat.nombre) },
+                                        onClick = {
+                                            filtroCategoria = cat.nombre
+                                            categoriaDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Taller
+                        OutlinedTextField(
+                            value = filtroTaller,
+                            onValueChange = { filtroTaller = it },
+                            label = { Text("Filtrar por Taller / Responsable") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+
+                        // Rango de Costo
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = filtroCostoMin,
+                                onValueChange = { filtroCostoMin = it },
+                                label = { Text("Costo Mínimo ($)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            OutlinedTextField(
+                                value = filtroCostoMax,
+                                onValueChange = { filtroCostoMax = it },
+                                label = { Text("Costo Máximo ($)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                        }
+
+                        // Botón limpiar filtros
+                        TextButton(
+                            onClick = {
+                                filtroCategoria = null
+                                filtroTaller = ""
+                                filtroCostoMin = ""
+                                filtroCostoMax = ""
+                                searchQuery = ""
+                                filtroTipo = null
+                                filtroVehiculoId = null
+                            }
+                        ) {
+                            Text("Limpiar todos los filtros")
+                        }
+                    }
+                }
             }
         }
 
@@ -285,7 +373,7 @@ fun HistorialScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Box(modifier = Modifier.padding(24.dp)) {
-                        Text("No se encontraron registros en el historial.")
+                        Text("No se encontraron registros con los filtros aplicados.")
                     }
                 }
             }
@@ -325,7 +413,7 @@ fun HistorialItemCard(item: MantenimientoRealizado) {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Taller: ${item.taller.ifBlank { "No especificado" }} • $fechaStr",
+                        text = "Cat: ${item.categoria} • Taller: ${item.taller.ifBlank { "No especificado" }} • $fechaStr",
                         style = MaterialTheme.typography.bodySmall,
                         color = ColorTextSecondary
                     )
@@ -378,7 +466,14 @@ fun HistorialItemCard(item: MantenimientoRealizado) {
                         Spacer(modifier = Modifier.height(6.dp))
                     }
 
+                    Text(
+                        text = "Desglose: Mano de Obra: ${currencyFormat.format(item.costoManoDeObra)} • Repuestos: ${currencyFormat.format(item.costoRepuestos)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ColorTextSecondary
+                    )
+
                     if (item.repuestos.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = "Repuestos instalados (${item.repuestos.size}):",
                             style = MaterialTheme.typography.labelMedium,
@@ -387,7 +482,7 @@ fun HistorialItemCard(item: MantenimientoRealizado) {
                         Spacer(modifier = Modifier.height(2.dp))
                         item.repuestos.forEach { rep ->
                             Text(
-                                text = "• ${rep.nombre} (${rep.marca}) - ${currencyFormat.format(rep.costo)}",
+                                text = "• ${rep.nombre} (${rep.marca}) - ${currencyFormat.format(rep.costo * rep.cantidad)}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = ColorTextSecondary
                             )

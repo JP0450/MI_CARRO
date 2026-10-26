@@ -36,6 +36,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -82,8 +83,13 @@ fun VehiculosScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var vehiculoAEditar by remember { mutableStateOf<Vehiculo?>(null) }
     var vehiculoHistorialId by remember { mutableStateOf<String?>(null) }
+    var mostrarArchivados by remember { mutableStateOf(false) }
 
     val isEditing = vehiculoAEditar != null
+
+    val vehiculosList = remember(vehiculos, mostrarArchivados) {
+        vehiculos.filter { if (mostrarArchivados) it.archivado else !it.archivado }
+    }
 
     // Campos del formulario
     var placaText by remember { mutableStateOf("") }
@@ -159,16 +165,35 @@ fun VehiculosScreen(
                 color = ColorDeepGreen
             )
             Text(
-                text = "Administra tu inventario, documentos y vehículo principal",
+                text = "Administra tu inventario, documentos y vehículos archivados",
                 style = MaterialTheme.typography.bodyMedium,
                 color = ColorTextSecondary
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            if (vehiculos.isEmpty()) {
+            // Selector Activos / Archivados (RF-03)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                FilterChip(
+                    selected = !mostrarArchivados,
+                    onClick = { mostrarArchivados = false },
+                    label = { Text("Activos (${vehiculos.count { !it.archivado }})") }
+                )
+                FilterChip(
+                    selected = mostrarArchivados,
+                    onClick = { mostrarArchivados = true },
+                    label = { Text("Archivados (${vehiculos.count { it.archivado }})") }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            if (vehiculosList.isEmpty()) {
                 Text(
-                    text = "No hay vehículos registrados. Pulsa + para agregar uno.",
+                    text = if (mostrarArchivados) "No hay vehículos archivados." else "No hay vehículos registrados. Pulsa + para agregar uno.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -181,12 +206,12 @@ fun VehiculosScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Inventario (Principal primero)",
+                        text = if (mostrarArchivados) "Vehículos Archivados" else "Inventario (Principal primero)",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "${vehiculos.size} vehículos",
+                        text = "${vehiculosList.size} vehículos",
                         style = MaterialTheme.typography.labelLarge,
                         color = ColorTextSecondary
                     )
@@ -195,7 +220,7 @@ fun VehiculosScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.imePadding()
                 ) {
-                    items(vehiculos) { vehiculo ->
+                    items(vehiculosList) { vehiculo ->
                         val hasDocError = vehiculo.documentacionVencidaOFaltante
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -258,10 +283,10 @@ fun VehiculosScreen(
                                             )
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text(
-                                                    text = if (hasDocError) "DOCUMENTACIÓN PENDIENTE" else "HABILITADO",
+                                                    text = if (vehiculo.archivado) "ARCHIVADO" else if (hasDocError) "DOCUMENTACIÓN PENDIENTE" else "HABILITADO",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = if (hasDocError) MaterialTheme.colorScheme.error else androidx.compose.ui.graphics.Color(0xFF205426)
+                                                    color = if (vehiculo.archivado) ColorTextSecondary else if (hasDocError) MaterialTheme.colorScheme.error else androidx.compose.ui.graphics.Color(0xFF205426)
                                                 )
                                                 if (!vehiculo.sincronizado) {
                                                     Spacer(modifier = Modifier.width(6.dp))
@@ -287,38 +312,40 @@ fun VehiculosScreen(
                                     }
 
                                     Row {
-                                        IconButton(
-                                            onClick = {
-                                                vehiculoAEditar = vehiculo
-                                                placaText = vehiculo.placa
-                                                marcaText = vehiculo.marca
-                                                modeloText = vehiculo.modelo
-                                                anioText = vehiculo.anio.toString()
-                                                kmText = vehiculo.kilometrajeActual.toString()
-                                                fechaSoat = vehiculo.fechaSeguroSoat
-                                                fechaTecno = vehiculo.fechaTecnoMecanica
-                                                vinText = vehiculo.vin
-                                                cilindrajeText = vehiculo.cilindraje
-                                                combustibleSeleccionado = vehiculo.tipoCombustible
-                                                tipoVehiculoSeleccionado = vehiculo.tipo
-                                                if (coloresComunes.contains(vehiculo.color)) {
-                                                    colorSeleccionado = vehiculo.color
-                                                    esColorPersonalizado = false
-                                                    colorPersonalizadoText = ""
-                                                } else {
-                                                    colorSeleccionado = "Otro / Personalizado"
-                                                    esColorPersonalizado = true
-                                                    colorPersonalizadoText = vehiculo.color
+                                        if (!vehiculo.archivado) {
+                                            IconButton(
+                                                onClick = {
+                                                    vehiculoAEditar = vehiculo
+                                                    placaText = vehiculo.placa
+                                                    marcaText = vehiculo.marca
+                                                    modeloText = vehiculo.modelo
+                                                    anioText = vehiculo.anio.toString()
+                                                    kmText = vehiculo.kilometrajeActual.toString()
+                                                    fechaSoat = vehiculo.fechaSeguroSoat
+                                                    fechaTecno = vehiculo.fechaTecnoMecanica
+                                                    vinText = vehiculo.vin
+                                                    cilindrajeText = vehiculo.cilindraje
+                                                    combustibleSeleccionado = vehiculo.tipoCombustible
+                                                    tipoVehiculoSeleccionado = vehiculo.tipo
+                                                    if (coloresComunes.contains(vehiculo.color)) {
+                                                        colorSeleccionado = vehiculo.color
+                                                        esColorPersonalizado = false
+                                                        colorPersonalizadoText = ""
+                                                    } else {
+                                                        colorSeleccionado = "Otro / Personalizado"
+                                                        esColorPersonalizado = true
+                                                        colorPersonalizadoText = vehiculo.color
+                                                    }
+                                                    dialogErrorMessage = ""
+                                                    showAddDialog = true
                                                 }
-                                                dialogErrorMessage = ""
-                                                showAddDialog = true
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Edit,
+                                                    contentDescription = "Editar",
+                                                    tint = ColorDeepGreen
+                                                )
                                             }
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Edit,
-                                                contentDescription = "Editar",
-                                                tint = ColorDeepGreen
-                                            )
                                         }
 
                                         IconButton(
@@ -340,41 +367,59 @@ fun VehiculosScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    if (vehiculo.esPrincipal) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier
-                                                .clip(CircleShape)
-                                                .background(ColorDeepGreen.copy(alpha = 0.15f))
-                                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                                        ) {
-                                            Icon(Icons.Default.Star, contentDescription = null, tint = ColorDeepGreen, modifier = Modifier.size(14.dp))
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text(
-                                                text = "Vehículo Principal",
-                                                color = ColorDeepGreen,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp
-                                            )
-                                        }
-                                    } else {
+                                    if (vehiculo.archivado) {
                                         OutlinedButton(
-                                            onClick = { vehiculoViewModel.asignarVehiculoPrincipal(vehiculo.id) },
+                                            onClick = { vehiculoViewModel.archivarVehiculo(vehiculo.id, false) },
                                             shape = RoundedCornerShape(10.dp)
                                         ) {
-                                            Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(14.dp))
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("Hacer Principal")
+                                            Text("Reactivar Vehículo")
                                         }
-                                    }
+                                    } else {
+                                        if (vehiculo.esPrincipal) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier
+                                                    .clip(CircleShape)
+                                                    .background(ColorDeepGreen.copy(alpha = 0.15f))
+                                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                                            ) {
+                                                Icon(Icons.Default.Star, contentDescription = null, tint = ColorDeepGreen, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = "Vehículo Principal",
+                                                    color = ColorDeepGreen,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.sp
+                                                )
+                                            }
+                                        } else {
+                                            OutlinedButton(
+                                                onClick = { vehiculoViewModel.asignarVehiculoPrincipal(vehiculo.id) },
+                                                shape = RoundedCornerShape(10.dp)
+                                            ) {
+                                                Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("Hacer Principal")
+                                            }
+                                        }
 
-                                    OutlinedButton(
-                                        onClick = { vehiculoHistorialId = vehiculo.id },
-                                        shape = RoundedCornerShape(10.dp)
-                                    ) {
-                                        Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Historial KM")
+                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            OutlinedButton(
+                                                onClick = { vehiculoViewModel.archivarVehiculo(vehiculo.id, true) },
+                                                shape = RoundedCornerShape(10.dp)
+                                            ) {
+                                                Text("Archivar")
+                                            }
+
+                                            OutlinedButton(
+                                                onClick = { vehiculoHistorialId = vehiculo.id },
+                                                shape = RoundedCornerShape(10.dp)
+                                            ) {
+                                                Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("KM")
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -418,7 +463,6 @@ fun VehiculosScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                     }
 
-                    // Tipo de Vehículo
                     if (!isEditing) {
                         ExposedDropdownMenuBox(
                             expanded = tipoDropdownExpanded,
@@ -467,7 +511,6 @@ fun VehiculosScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                     }
 
-                    // Placa
                     OutlinedTextField(
                         value = placaText,
                         onValueChange = { if (!isEditing) placaText = it.uppercase().filter { char -> char.isLetterOrDigit() }.take(6) },
@@ -480,7 +523,6 @@ fun VehiculosScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Marca
                     if (!isEditing) {
                         val marcasDisponibles = CatalogoVehiculos.obtenerMarcas(tipoVehiculoSeleccionado)
                         ExposedDropdownMenuBox(
@@ -543,7 +585,6 @@ fun VehiculosScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Modelo
                     if (!isEditing) {
                         val modelosDisponibles = CatalogoVehiculos.obtenerModelos(tipoVehiculoSeleccionado, marcaText)
                         ExposedDropdownMenuBox(
@@ -628,7 +669,6 @@ fun VehiculosScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Color editable siempre
                     ExposedDropdownMenuBox(
                         expanded = colorDropdownExpanded,
                         onExpandedChange = { colorDropdownExpanded = !colorDropdownExpanded }
@@ -773,6 +813,13 @@ fun VehiculosScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        val anioInt = anioText.toIntOrNull()
+                        val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+                        if (anioInt == null || anioInt !in 1900..(currentYear + 1)) {
+                            dialogErrorMessage = "El año del vehículo debe ser un valor válido entre 1900 y ${currentYear + 1}."
+                            return@Button
+                        }
+
                         val cleanPlaca = placaText.uppercase().filter { it.isLetterOrDigit() }
                         val placaRegex = Regex("^[A-Z]{3}[0-9]{3}$")
                         if (!placaRegex.matches(cleanPlaca)) {
@@ -790,7 +837,7 @@ fun VehiculosScreen(
                                     placa = placaFormateada,
                                     marca = marcaText,
                                     modelo = modeloText,
-                                    anio = anioText.toIntOrNull() ?: 2023,
+                                    anio = anioInt,
                                     tipo = tipoVehiculoSeleccionado,
                                     kilometrajeActual = kmText.toIntOrNull() ?: 0,
                                     fechaSeguroSoat = fechaSoat,
@@ -799,7 +846,8 @@ fun VehiculosScreen(
                                     vin = vinText,
                                     tipoCombustible = combustibleSeleccionado,
                                     cilindraje = cilindrajeText,
-                                    esPrincipal = vehiculoAEditar?.esPrincipal ?: (vehiculos.isEmpty())
+                                    esPrincipal = vehiculoAEditar?.esPrincipal ?: (vehiculos.isEmpty()),
+                                    archivado = vehiculoAEditar?.archivado ?: false
                                 )
                             ) { success, errorMsg ->
                                 if (success) {

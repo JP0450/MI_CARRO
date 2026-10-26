@@ -52,7 +52,10 @@ class MantenimientoRepository(private val context: Context) {
                 fechaObjetivo = System.currentTimeMillis() + unMesMillis,
                 frecuenciaKm = 10000,
                 frecuenciaMeses = 6,
-                estado = EstadoMantenimiento.AL_DIA
+                anticipacionKm = 500,
+                anticipacionDias = 7,
+                estado = EstadoMantenimiento.AL_DIA,
+                pausado = false
             ),
             MantenimientoProgramado(
                 id = "p2",
@@ -63,7 +66,10 @@ class MantenimientoRepository(private val context: Context) {
                 criterio = CriterioAlerta.KILOMETRAJE,
                 kilometrajeObjetivo = 46000,
                 frecuenciaKm = 20000,
-                estado = EstadoMantenimiento.PROXIMO
+                anticipacionKm = 1000,
+                anticipacionDias = 10,
+                estado = EstadoMantenimiento.PROXIMO,
+                pausado = false
             ),
             MantenimientoProgramado(
                 id = "p3",
@@ -74,7 +80,10 @@ class MantenimientoRepository(private val context: Context) {
                 criterio = CriterioAlerta.KILOMETRAJE,
                 kilometrajeObjetivo = 13000,
                 frecuenciaKm = 3000,
-                estado = EstadoMantenimiento.PROXIMO
+                anticipacionKm = 300,
+                anticipacionDias = 5,
+                estado = EstadoMantenimiento.PROXIMO,
+                pausado = false
             )
         )
 
@@ -83,6 +92,7 @@ class MantenimientoRepository(private val context: Context) {
                 id = "r1",
                 vehiculoId = "v1",
                 titulo = "Cambio de Filtro de Aire y Batería",
+                categoria = "Filtros",
                 tipo = TipoMantenimiento.PREVENTIVO,
                 taller = "Taller Central Toyota",
                 fecha = System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000),
@@ -129,8 +139,11 @@ class MantenimientoRepository(private val context: Context) {
                                 fechaObjetivo = doc.getLong("fechaObjetivo"),
                                 frecuenciaKm = doc.getLong("frecuenciaKm")?.toInt(),
                                 frecuenciaMeses = doc.getLong("frecuenciaMeses")?.toInt(),
+                                anticipacionKm = (doc.getLong("anticipacionKm") ?: 500).toInt(),
+                                anticipacionDias = (doc.getLong("anticipacionDias") ?: 7).toInt(),
                                 estado = EstadoMantenimiento.valueOf(doc.getString("estado") ?: "AL_DIA"),
-                                pospuestoHasta = doc.getLong("pospuestoHasta")
+                                pospuestoHasta = doc.getLong("pospuestoHasta"),
+                                pausado = doc.getBoolean("pausado") ?: false
                             )
                         } catch (e: Exception) {
                             null
@@ -158,8 +171,11 @@ class MantenimientoRepository(private val context: Context) {
                     "fechaObjetivo" to item.fechaObjetivo,
                     "frecuenciaKm" to item.frecuenciaKm,
                     "frecuenciaMeses" to item.frecuenciaMeses,
+                    "anticipacionKm" to item.anticipacionKm,
+                    "anticipacionDias" to item.anticipacionDias,
                     "estado" to item.estado.name,
-                    "pospuestoHasta" to item.pospuestoHasta
+                    "pospuestoHasta" to item.pospuestoHasta,
+                    "pausado" to item.pausado
                 )
             )
         }
@@ -189,8 +205,11 @@ class MantenimientoRepository(private val context: Context) {
                 "fechaObjetivo" to item.fechaObjetivo,
                 "frecuenciaKm" to item.frecuenciaKm,
                 "frecuenciaMeses" to item.frecuenciaMeses,
+                "anticipacionKm" to item.anticipacionKm,
+                "anticipacionDias" to item.anticipacionDias,
                 "estado" to item.estado.name,
-                "pospuestoHasta" to item.pospuestoHasta
+                "pospuestoHasta" to item.pospuestoHasta,
+                "pausado" to item.pausado
             )
         )
     }
@@ -200,8 +219,10 @@ class MantenimientoRepository(private val context: Context) {
         val index = currentList.indexOfFirst { it.id == mantenimientoId }
         if (index >= 0) {
             val item = currentList[index]
-            val nuevaFecha = (item.fechaObjetivo ?: System.currentTimeMillis()) + (7L * 24 * 60 * 60 * 1000)
-            val nuevoKm = (item.kilometrajeObjetivo ?: 0) + 500
+            val antDias = item.anticipacionDias.toLong()
+            val antKm = item.anticipacionKm
+            val nuevaFecha = (item.fechaObjetivo ?: System.currentTimeMillis()) + (antDias * 24 * 60 * 60 * 1000)
+            val nuevoKm = (item.kilometrajeObjetivo ?: 0) + antKm
             val updated = item.copy(
                 fechaObjetivo = nuevaFecha,
                 kilometrajeObjetivo = nuevoKm,
@@ -220,6 +241,28 @@ class MantenimientoRepository(private val context: Context) {
         }
     }
 
+    fun pausarAlerta(mantenimientoId: String, pausado: Boolean) {
+        val currentList = _programados.value.toMutableList()
+        val index = currentList.indexOfFirst { it.id == mantenimientoId }
+        if (index >= 0) {
+            val item = currentList[index]
+            val updated = item.copy(
+                pausado = pausado,
+                estado = if (pausado) EstadoMantenimiento.AL_DIA else item.estado
+            )
+            currentList[index] = updated
+            _programados.value = currentList
+
+            firestore?.collection("mantenimientos_programados")?.document(mantenimientoId)?.update(
+                mapOf(
+                    "pausado" to pausado,
+                    "estado" to updated.estado.name
+                )
+            )
+        }
+    }
+
+    // RF-21: Reprogramación automática transaccional robusta
     fun registrarMantenimientoRealizado(realizado: MantenimientoRealizado) {
         val idToUse = if (realizado.id.isBlank()) UUID.randomUUID().toString() else realizado.id
         val item = realizado.copy(id = idToUse, sincronizado = firestore != null)
@@ -233,39 +276,81 @@ class MantenimientoRepository(private val context: Context) {
             val index = progList.indexOfFirst { it.id == item.mantenimientoProgramadoId }
             if (index >= 0) {
                 val prog = progList[index]
-                val nextKm = if (prog.frecuenciaKm != null) item.kilometrajeRealizado + prog.frecuenciaKm else null
+                val nextKm = if (prog.frecuenciaKm != null) item.kilometrajeRealizado + prog.frecuenciaKm else prog.kilometrajeObjetivo
                 val nextFecha = if (prog.frecuenciaMeses != null) {
                     item.fecha + (prog.frecuenciaMeses.toLong() * 30 * 24 * 60 * 60 * 1000)
-                } else null
+                } else prog.fechaObjetivo
 
                 val updatedProg = prog.copy(
                     kilometrajeObjetivo = nextKm,
                     fechaObjetivo = nextFecha,
-                    estado = EstadoMantenimiento.AL_DIA
+                    estado = EstadoMantenimiento.AL_DIA,
+                    pospuestoHasta = null,
+                    pausado = false
                 )
                 progList[index] = updatedProg
                 _programados.value = progList
                 guardarProgramado(updatedProg)
             }
         }
+
+        firestore?.collection("mantenimientos_realizados")?.document(idToUse)?.set(
+            mapOf(
+                "vehiculoId" to item.vehiculoId,
+                "mantenimientoProgramadoId" to item.mantenimientoProgramadoId,
+                "titulo" to item.titulo,
+                "categoria" to item.categoria,
+                "tipo" to item.tipo.name,
+                "taller" to item.taller,
+                "fecha" to item.fecha,
+                "kilometrajeRealizado" to item.kilometrajeRealizado,
+                "costoManoDeObra" to item.costoManoDeObra,
+                "costoRepuestos" to item.costoRepuestos,
+                "costoTotal" to item.costoTotal,
+                "observaciones" to item.observaciones,
+                "evidenciasUrls" to item.evidenciasUrls,
+                "repuestos" to item.repuestos.map { rep ->
+                    mapOf(
+                        "id" to rep.id,
+                        "nombre" to rep.nombre,
+                        "marca" to rep.marca,
+                        "referencia" to rep.referencia,
+                        "cantidad" to rep.cantidad,
+                        "proveedor" to rep.proveedor,
+                        "costo" to rep.costo,
+                        "garantiaMeses" to rep.garantiaMeses,
+                        "garantiaKm" to rep.garantiaKm,
+                        "fechaInstalacion" to rep.fechaInstalacion,
+                        "kilometrajeInstalacion" to rep.kilometrajeInstalacion
+                    )
+                }
+            )
+        )
     }
 
     fun evaluarEstadosMantenimientos(vehiculoId: String, kmActual: Int) {
         val currentList = _programados.value.map { prog ->
             if (prog.vehiculoId == vehiculoId) {
-                val ahora = System.currentTimeMillis()
-                val vencidoKm = prog.kilometrajeObjetivo != null && kmActual >= prog.kilometrajeObjetivo
-                val vencidoFecha = prog.fechaObjetivo != null && ahora >= prog.fechaObjetivo
+                if (prog.pausado) {
+                    prog.copy(estado = EstadoMantenimiento.AL_DIA)
+                } else {
+                    val ahora = System.currentTimeMillis()
+                    val vencidoKm = prog.kilometrajeObjetivo != null && kmActual >= prog.kilometrajeObjetivo
+                    val vencidoFecha = prog.fechaObjetivo != null && ahora >= prog.fechaObjetivo
 
-                val proximoKm = prog.kilometrajeObjetivo != null && kmActual >= (prog.kilometrajeObjetivo - 500)
-                val proximoFecha = prog.fechaObjetivo != null && ahora >= (prog.fechaObjetivo - (7L * 24 * 60 * 60 * 1000))
+                    val antKm = prog.anticipacionKm
+                    val antDias = prog.anticipacionDias.toLong()
 
-                val nuevoEstado = when {
-                    vencidoKm || vencidoFecha -> EstadoMantenimiento.VENCIDO
-                    proximoKm || proximoFecha -> EstadoMantenimiento.PROXIMO
-                    else -> EstadoMantenimiento.AL_DIA
+                    val proximoKm = prog.kilometrajeObjetivo != null && kmActual >= (prog.kilometrajeObjetivo - antKm)
+                    val proximoFecha = prog.fechaObjetivo != null && ahora >= (prog.fechaObjetivo - (antDias * 24 * 60 * 60 * 1000))
+
+                    val nuevoEstado = when {
+                        vencidoKm || vencidoFecha -> EstadoMantenimiento.VENCIDO
+                        proximoKm || proximoFecha -> EstadoMantenimiento.PROXIMO
+                        else -> EstadoMantenimiento.AL_DIA
+                    }
+                    prog.copy(estado = nuevoEstado)
                 }
-                prog.copy(estado = nuevoEstado)
             } else {
                 prog
             }

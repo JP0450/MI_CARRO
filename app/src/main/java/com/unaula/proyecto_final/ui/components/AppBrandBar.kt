@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -35,7 +36,10 @@ import com.unaula.proyecto_final.ui.theme.ColorDeepGreen
 import com.unaula.proyecto_final.ui.theme.ColorTextPrimary
 
 @Composable
-fun AppBrandBar(onBack: (() -> Unit)? = null) {
+fun AppBrandBar(
+    onBack: (() -> Unit)? = null,
+    onSettingsClick: (() -> Unit)? = null
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -83,6 +87,16 @@ fun AppBrandBar(onBack: (() -> Unit)? = null) {
                 fontSize = 10.sp,
                 lineHeight = 12.sp
             )
+        }
+        if (onSettingsClick != null) {
+            IconButton(onClick = onSettingsClick, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Configuración",
+                    tint = ColorDeepGreen
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
         }
         Surface(
             shape = CircleShape,

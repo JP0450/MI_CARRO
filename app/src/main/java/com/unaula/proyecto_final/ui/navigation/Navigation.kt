@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -39,10 +40,12 @@ import com.unaula.proyecto_final.ui.screens.ProgramarMantenimientoScreen
 import com.unaula.proyecto_final.ui.screens.RegistrarMantenimientoScreen
 import com.unaula.proyecto_final.ui.screens.ReportesScreen
 import com.unaula.proyecto_final.ui.screens.VehiculosScreen
+import com.unaula.proyecto_final.ui.screens.ConfiguracionScreen
 import com.unaula.proyecto_final.ui.components.AppBrandBar
 import com.unaula.proyecto_final.ui.viewmodel.MantenimientoViewModel
 import com.unaula.proyecto_final.ui.viewmodel.ReportesViewModel
 import com.unaula.proyecto_final.ui.viewmodel.VehiculoViewModel
+import com.unaula.proyecto_final.ui.viewmodel.ConfiguracionViewModel
 import com.unaula.proyecto_final.ui.theme.ColorDeepBlue
 import com.unaula.proyecto_final.ui.theme.ColorTextSecondary
 
@@ -53,6 +56,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     object RegistrarMantenimiento : Screen("registrar_mantenimiento", "Registrar")
     object Historial : Screen("historial", "Historial", Icons.AutoMirrored.Filled.Assignment)
     object Reportes : Screen("reportes", "Reportes", Icons.Outlined.Analytics)
+    object Configuracion : Screen("configuracion", "Configuración", Icons.Outlined.Settings)
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -75,7 +79,8 @@ fun AppNavigation(
         Screen.Reportes
     )
     val isFormRoute = currentRoute == Screen.ProgramarMantenimiento.route ||
-        currentRoute == Screen.RegistrarMantenimiento.route
+        currentRoute == Screen.RegistrarMantenimiento.route ||
+        currentRoute == Screen.Configuracion.route
 
     Scaffold(
         containerColor = Color.White,
@@ -84,6 +89,11 @@ fun AppNavigation(
             AppBrandBar(
                 onBack = if (isFormRoute) {
                     { navController.popBackStack() }
+                } else {
+                    null
+                },
+                onSettingsClick = if (currentRoute != Screen.Configuracion.route && !isFormRoute) {
+                    { navController.navigate(Screen.Configuracion.route) }
                 } else {
                     null
                 }
@@ -175,6 +185,11 @@ fun AppNavigation(
                     vehiculoViewModel = vehiculoViewModel,
                     mantenimientoViewModel = mantenimientoViewModel,
                     reportesViewModel = reportesViewModel
+                )
+            }
+            composable(Screen.Configuracion.route) {
+                ConfiguracionScreen(
+                    configuracionViewModel = viewModel()
                 )
             }
         }

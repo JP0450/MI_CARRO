@@ -24,11 +24,12 @@ class VehiculoViewModel(application: Application) : AndroidViewModel(application
     init {
         viewModelScope.launch {
             vehiculos.collect { list ->
-                val principal = list.find { it.esPrincipal } ?: list.firstOrNull()
+                val activeList = list.filter { !it.archivado }
+                val principal = activeList.find { it.esPrincipal } ?: activeList.firstOrNull()
                 if (_vehiculoSeleccionado.value == null && principal != null) {
                     _vehiculoSeleccionado.value = principal
                 } else if (_vehiculoSeleccionado.value != null) {
-                    val updated = list.find { it.id == _vehiculoSeleccionado.value?.id }
+                    val updated = activeList.find { it.id == _vehiculoSeleccionado.value?.id }
                     if (updated != null) {
                         _vehiculoSeleccionado.value = updated
                     } else if (principal != null) {
@@ -65,6 +66,13 @@ class VehiculoViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun archivarVehiculo(vehiculoId: String, archivado: Boolean) {
+        repository.archivarVehiculo(vehiculoId, archivado)
+        if (archivado && _vehiculoSeleccionado.value?.id == vehiculoId) {
+            _vehiculoSeleccionado.value = vehiculos.value.firstOrNull { !it.archivado }
+        }
+    }
+
     fun actualizarKilometraje(vehiculoId: String, nuevoKm: Int, nota: String = "Actualización manual") {
         repository.actualizarKilometraje(vehiculoId, nuevoKm, nota)
     }
@@ -72,7 +80,7 @@ class VehiculoViewModel(application: Application) : AndroidViewModel(application
     fun eliminarVehiculo(vehiculoId: String) {
         repository.eliminarVehiculo(vehiculoId)
         if (_vehiculoSeleccionado.value?.id == vehiculoId) {
-            _vehiculoSeleccionado.value = vehiculos.value.firstOrNull { it.id != vehiculoId }
+            _vehiculoSeleccionado.value = vehiculos.value.firstOrNull { !it.archivado }
         }
     }
 }

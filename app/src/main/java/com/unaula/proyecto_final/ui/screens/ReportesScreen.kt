@@ -99,6 +99,7 @@ fun ReportesScreen(
     var selectedVehicleId by remember { mutableStateOf<String?>(null) }
     var vehicleMenuExpanded by remember { mutableStateOf(false) }
     var exportError by remember { mutableStateOf<String?>(null) }
+    var showInventarioRepuestos by remember { mutableStateOf(false) }
 
     val selectedVehicle = vehiculos.firstOrNull { it.id == selectedVehicleId }
     val filteredVehicles = if (selectedVehicle == null) vehiculos else listOf(selectedVehicle)
@@ -249,6 +250,19 @@ fun ReportesScreen(
             }
 
             item {
+                Button(
+                    onClick = { showInventarioRepuestos = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = ColorDeepGreen)
+                ) {
+                    Icon(Icons.Default.Inventory2, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Ver Inventario Consolidado de Repuestos (RF-27)")
+                }
+            }
+
+            item {
                 SpendingBreakdown(
                     summary = resumen,
                     currency = currency,
@@ -340,6 +354,26 @@ fun ReportesScreen(
             confirmButton = {
                 TextButton(onClick = { exportError = null }) {
                     Text("Entendido")
+                }
+            }
+        )
+    }
+
+    if (showInventarioRepuestos) {
+        AlertDialog(
+            onDismissRequest = { showInventarioRepuestos = false },
+            title = { Text("Inventario Consolidado de Repuestos (RF-27)") },
+            text = {
+                Box(modifier = Modifier.height(450.dp)) {
+                    InventarioRepuestosScreen(
+                        vehiculoViewModel = vehiculoViewModel,
+                        mantenimientoViewModel = mantenimientoViewModel
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showInventarioRepuestos = false }) {
+                    Text("Cerrar")
                 }
             }
         )

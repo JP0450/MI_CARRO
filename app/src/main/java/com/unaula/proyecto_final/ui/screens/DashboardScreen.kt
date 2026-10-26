@@ -108,8 +108,8 @@ fun DashboardScreen(
         } ?: emptyList()
     }
 
-    val mantenimientosProximos = mantenimientosVehiculo.count { it.estado == EstadoMantenimiento.PROXIMO }
-    val mantenimientosVencidos = mantenimientosVehiculo.count { it.estado == EstadoMantenimiento.VENCIDO }
+    val mantenimientosProximos = mantenimientosVehiculo.count { it.estado == EstadoMantenimiento.PROXIMO && !it.pausado }
+    val mantenimientosVencidos = mantenimientosVehiculo.count { it.estado == EstadoMantenimiento.VENCIDO && !it.pausado }
     val docVencidaOFaltante = vehiculoSeleccionado?.documentacionVencidaOFaltante == true
 
     val estadoGeneralColor = when {
@@ -465,7 +465,7 @@ fun DashboardScreen(
                 }
 
                 val alertas = mantenimientosVehiculo.filter {
-                    it.estado == EstadoMantenimiento.PROXIMO || it.estado == EstadoMantenimiento.VENCIDO
+                    (it.estado == EstadoMantenimiento.PROXIMO || it.estado == EstadoMantenimiento.VENCIDO) && !it.pausado
                 }
 
                 if (alertas.isEmpty()) {
@@ -485,7 +485,8 @@ fun DashboardScreen(
                     items(alertas) { alerta ->
                         ItemAlertaCard(
                             alerta = alerta,
-                            onPosponerClick = { mantenimientoViewModel.posponerAlerta(alerta.id) }
+                            onPosponerClick = { mantenimientoViewModel.posponerAlerta(alerta.id) },
+                            onPausarClick = { mantenimientoViewModel.pausarAlerta(alerta.id, !alerta.pausado) }
                         )
                     }
                 }
@@ -603,7 +604,8 @@ private fun DashboardStat(
 @Composable
 fun ItemAlertaCard(
     alerta: MantenimientoProgramado,
-    onPosponerClick: () -> Unit
+    onPosponerClick: () -> Unit,
+    onPausarClick: () -> Unit
 ) {
     val isVencido = alerta.estado == EstadoMantenimiento.VENCIDO
     val containerColor = if (isVencido) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer
@@ -670,11 +672,21 @@ fun ItemAlertaCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedButton(
-                onClick = onPosponerClick,
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text("Posponer (+7 días)", fontSize = 12.sp, color = contentColor)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = onPosponerClick,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Posponer (+7d)", fontSize = 12.sp, color = contentColor)
+                }
+                OutlinedButton(
+                    onClick = onPausarClick,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(if (alerta.pausado) "Reactivar" else "Pausar", fontSize = 12.sp, color = contentColor)
+                }
             }
         }
     }

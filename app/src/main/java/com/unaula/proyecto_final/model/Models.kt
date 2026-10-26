@@ -31,7 +31,8 @@ data class Vehiculo(
     val vin: String = "",
     val tipoCombustible: TipoCombustible = TipoCombustible.GASOLINA,
     val cilindraje: String = "",
-    val sincronizado: Boolean = true
+    val sincronizado: Boolean = true,
+    val archivado: Boolean = false
 ) {
     val tieneDocumentacionCompleta: Boolean
         get() = fechaSeguroSoat != null && fechaTecnoMecanica != null
@@ -96,9 +97,12 @@ data class MantenimientoProgramado(
     val fechaObjetivo: Long? = null,
     val frecuenciaKm: Int? = null,
     val frecuenciaMeses: Int? = null,
+    val anticipacionKm: Int = 500,
+    val anticipacionDias: Int = 7,
     val estado: EstadoMantenimiento = EstadoMantenimiento.AL_DIA,
     val pospuestoHasta: Long? = null,
-    val sincronizado: Boolean = true
+    val sincronizado: Boolean = true,
+    val pausado: Boolean = false
 )
 
 enum class TipoMantenimiento(val label: String) {
@@ -125,6 +129,7 @@ data class MantenimientoRealizado(
     val vehiculoId: String = "",
     val mantenimientoProgramadoId: String? = null,
     val titulo: String = "",
+    val categoria: String = "Otros",
     val tipo: TipoMantenimiento = TipoMantenimiento.PREVENTIVO,
     val taller: String = "",
     val fecha: Long = System.currentTimeMillis(),

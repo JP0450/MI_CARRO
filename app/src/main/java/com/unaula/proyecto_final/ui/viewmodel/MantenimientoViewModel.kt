@@ -33,6 +33,10 @@ class MantenimientoViewModel(application: Application) : AndroidViewModel(applic
         repository.posponerAlerta(mantenimientoId)
     }
 
+    fun pausarAlerta(mantenimientoId: String, pausado: Boolean) {
+        repository.pausarAlerta(mantenimientoId, pausado)
+    }
+
     fun obtenerRepuestosDeVehiculo(vehiculoId: String): List<Repuesto> {
         val realizs = realizados.value.filter { it.vehiculoId == vehiculoId }
         return realizs.flatMap { it.repuestos }

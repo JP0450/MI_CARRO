@@ -38,7 +38,8 @@ class VehiculoRepository(private val context: Context) {
                 vin = "1HGCR2F33HA000001",
                 tipoCombustible = TipoCombustible.GASOLINA,
                 cilindraje = "2000 cc",
-                sincronizado = true
+                sincronizado = true,
+                archivado = false
             ),
             Vehiculo(
                 id = "v2",
@@ -55,12 +56,12 @@ class VehiculoRepository(private val context: Context) {
                 vin = "ME1RE2503P000002",
                 tipoCombustible = TipoCombustible.GASOLINA,
                 cilindraje = "250 cc",
-                sincronizado = true
+                sincronizado = true,
+                archivado = false
             )
         )
         _vehiculos.value = defaultList.sortedByDescending { it.esPrincipal }
 
-        // Historial inicial de muestra
         _historialKm.value = listOf(
             HistorialKilometraje(id = "hk1", vehiculoId = "v1", kilometraje = 45200, nota = "Lectura inicial"),
             HistorialKilometraje(id = "hk2", vehiculoId = "v2", kilometraje = 12500, nota = "Lectura inicial")
@@ -95,7 +96,8 @@ class VehiculoRepository(private val context: Context) {
                                     vin = doc.getString("vin") ?: "",
                                     tipoCombustible = try { TipoCombustible.valueOf(combStr) } catch (e: Exception) { TipoCombustible.GASOLINA },
                                     cilindraje = doc.getString("cilindraje") ?: "",
-                                    sincronizado = true
+                                    sincronizado = true,
+                                    archivado = doc.getBoolean("archivado") ?: false
                                 )
                             } catch (e: Exception) {
                                 null
@@ -135,7 +137,8 @@ class VehiculoRepository(private val context: Context) {
                     "color" to vehiculo.color,
                     "vin" to vehiculo.vin,
                     "tipoCombustible" to vehiculo.tipoCombustible.name,
-                    "cilindraje" to vehiculo.cilindraje
+                    "cilindraje" to vehiculo.cilindraje,
+                    "archivado" to vehiculo.archivado
                 )
             )
         }
@@ -174,7 +177,6 @@ class VehiculoRepository(private val context: Context) {
             processedList[index] = updatedVehiculo
         } else {
             processedList.add(updatedVehiculo)
-            // Registrar lectura inicial de kilometraje
             val histList = _historialKm.value.toMutableList()
             histList.add(
                 HistorialKilometraje(
@@ -212,7 +214,8 @@ class VehiculoRepository(private val context: Context) {
                     "color" to v.color,
                     "vin" to v.vin,
                     "tipoCombustible" to v.tipoCombustible.name,
-                    "cilindraje" to v.cilindraje
+                    "cilindraje" to v.cilindraje,
+                    "archivado" to v.archivado
                 )
             )
         }
@@ -231,6 +234,48 @@ class VehiculoRepository(private val context: Context) {
         }
     }
 
+    fun archivarVehiculo(vehiculoId: String, archivado: Boolean) {
+        val currentList = _vehiculos.value.map { v ->
+            if (v.id == vehiculoId) v.copy(archivado = archivado) else v
+        }.toMutableList()
+
+        val target = currentList.find { it.id == vehiculoId }
+        if (archivado && target?.esPrincipal == true) {
+            val nextActive = currentList.firstOrNull { !it.archivado && it.id != vehiculoId }
+            if (nextActive != null) {
+                val idxTarget = currentList.indexOfFirst { it.id == vehiculoId }
+                val idxNext = currentList.indexOfFirst { it.id == nextActive.id }
+                if (idxTarget >= 0) currentList[idxTarget] = currentList[idxTarget].copy(esPrincipal = false)
+                if (idxNext >= 0) currentList[idxNext] = currentList[idxNext].copy(esPrincipal = true)
+            }
+        }
+
+        _vehiculos.value = currentList.sortedByDescending { it.esPrincipal }
+
+        currentList.forEach { v ->
+            firestore?.collection("vehiculos")?.document(v.id)?.set(
+                mapOf(
+                    "placa" to v.placa,
+                    "marca" to v.marca,
+                    "modelo" to v.modelo,
+                    "anio" to v.anio,
+                    "tipo" to v.tipo.name,
+                    "kilometrajeActual" to v.kilometrajeActual,
+                    "fechaSeguroSoat" to v.fechaSeguroSoat,
+                    "fechaTecnoMecanica" to v.fechaTecnoMecanica,
+                    "fotoUrl" to v.fotoUrl,
+                    "fechaActualizacionKm" to v.fechaActualizacionKm,
+                    "esPrincipal" to v.esPrincipal,
+                    "color" to v.color,
+                    "vin" to v.vin,
+                    "tipoCombustible" to v.tipoCombustible.name,
+                    "cilindraje" to v.cilindraje,
+                    "archivado" to v.archivado
+                )
+            )
+        }
+    }
+
     fun actualizarKilometraje(vehiculoId: String, nuevoKm: Int, nota: String = "Actualización manual") {
         val currentList = _vehiculos.value.toMutableList()
         val index = currentList.indexOfFirst { it.id == vehiculoId }
@@ -242,7 +287,6 @@ class VehiculoRepository(private val context: Context) {
             currentList[index] = updated
             _vehiculos.value = currentList.sortedByDescending { it.esPrincipal }
 
-            // Guardar en historial de kilometraje
             val histList = _historialKm.value.toMutableList()
             histList.add(
                 HistorialKilometraje(
