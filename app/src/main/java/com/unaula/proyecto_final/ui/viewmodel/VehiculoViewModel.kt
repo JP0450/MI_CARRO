@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.unaula.proyecto_final.data.VehiculoRepository
+import com.unaula.proyecto_final.model.HistorialKilometraje
 import com.unaula.proyecto_final.model.Vehiculo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,7 @@ class VehiculoViewModel(application: Application) : AndroidViewModel(application
     private val repository = VehiculoRepository(application)
 
     val vehiculos: StateFlow<List<Vehiculo>> = repository.vehiculos
+    val historialKm: StateFlow<List<HistorialKilometraje>> = repository.historialKm
 
     private val _vehiculoSeleccionado = MutableStateFlow<Vehiculo?>(null)
     val vehiculoSeleccionado: StateFlow<Vehiculo?> = _vehiculoSeleccionado.asStateFlow()
@@ -22,13 +24,18 @@ class VehiculoViewModel(application: Application) : AndroidViewModel(application
     init {
         viewModelScope.launch {
             vehiculos.collect { list ->
-                if (_vehiculoSeleccionado.value == null && list.isNotEmpty()) {
-                    _vehiculoSeleccionado.value = list.first()
+                val principal = list.find { it.esPrincipal } ?: list.firstOrNull()
+                if (_vehiculoSeleccionado.value == null && principal != null) {
+                    _vehiculoSeleccionado.value = principal
                 } else if (_vehiculoSeleccionado.value != null) {
                     val updated = list.find { it.id == _vehiculoSeleccionado.value?.id }
                     if (updated != null) {
                         _vehiculoSeleccionado.value = updated
+                    } else if (principal != null) {
+                        _vehiculoSeleccionado.value = principal
                     }
+                } else if (principal != null) {
+                    _vehiculoSeleccionado.value = principal
                 }
             }
         }
@@ -38,12 +45,28 @@ class VehiculoViewModel(application: Application) : AndroidViewModel(application
         _vehiculoSeleccionado.value = vehiculo
     }
 
-    fun guardarVehiculo(vehiculo: Vehiculo) {
-        repository.guardarVehiculo(vehiculo)
+    fun guardarVehiculo(vehiculo: Vehiculo, onResult: (Boolean, String) -> Unit) {
+        val success = repository.guardarVehiculo(vehiculo)
+        if (success) {
+            onResult(true, "")
+        } else {
+            onResult(
+                false,
+                "Ya existe un vehículo registrado con la placa ${vehiculo.placa.uppercase()}. Las placas son únicas (no distinguen mayúsculas/minúsculas)."
+            )
+        }
     }
 
-    fun actualizarKilometraje(vehiculoId: String, nuevoKm: Int) {
-        repository.actualizarKilometraje(vehiculoId, nuevoKm)
+    fun asignarVehiculoPrincipal(vehiculoId: String) {
+        repository.asignarVehiculoPrincipal(vehiculoId)
+        val principal = vehiculos.value.find { it.id == vehiculoId }
+        if (principal != null) {
+            _vehiculoSeleccionado.value = principal
+        }
+    }
+
+    fun actualizarKilometraje(vehiculoId: String, nuevoKm: Int, nota: String = "Actualización manual") {
+        repository.actualizarKilometraje(vehiculoId, nuevoKm, nota)
     }
 
     fun eliminarVehiculo(vehiculoId: String) {

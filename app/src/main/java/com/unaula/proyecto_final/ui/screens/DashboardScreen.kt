@@ -1,5 +1,6 @@
 package com.unaula.proyecto_final.ui.screens
 
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -92,6 +93,7 @@ fun DashboardScreen(
 
     var showKmDialog by remember { mutableStateOf(false) }
     var nuevoKmText by remember { mutableStateOf("") }
+    var showOdometroWarning by remember { mutableStateOf(false) }
     var dropdownExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(vehiculoSeleccionado) {
@@ -217,7 +219,6 @@ fun DashboardScreen(
 
             vehiculoSeleccionado?.let { v ->
                 item {
-                    // Animación suave al cambiar de vehículo
                     AnimatedContent(
                         targetState = v,
                         label = "TransicionVehiculo",
@@ -273,7 +274,6 @@ fun DashboardScreen(
 
                                 Spacer(modifier = Modifier.height(14.dp))
 
-                                // Kilometraje actual con botón de edición rápida
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -306,7 +306,6 @@ fun DashboardScreen(
 
                                 Spacer(modifier = Modifier.height(12.dp))
 
-                                // Indicador Semáforo Estado Pill
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
@@ -333,7 +332,6 @@ fun DashboardScreen(
                     }
                 }
 
-                // Alerta específica de Documentación
                 item {
                     if (v.documentacionVencidaOFaltante) {
                         Card(
@@ -387,7 +385,6 @@ fun DashboardScreen(
                     }
                 }
 
-                // Botones Rápidos de Acción
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -486,14 +483,16 @@ fun DashboardScreen(
                     }
                 } else {
                     items(alertas) { alerta ->
-                        ItemAlertaCard(alerta)
+                        ItemAlertaCard(
+                            alerta = alerta,
+                            onPosponerClick = { mantenimientoViewModel.posponerAlerta(alerta.id) }
+                        )
                     }
                 }
             }
         }
     }
 
-    // Diálogo para Actualizar Kilometraje
     if (showKmDialog) {
         AlertDialog(
             onDismissRequest = { showKmDialog = false },
@@ -520,11 +519,16 @@ fun DashboardScreen(
                 Button(
                     onClick = {
                         val km = nuevoKmText.toIntOrNull()
+                        val actualKm = vehiculoSeleccionado?.kilometrajeActual ?: 0
                         if (km != null && vehiculoSeleccionado != null) {
-                            vehiculoViewModel.actualizarKilometraje(vehiculoSeleccionado!!.id, km)
-                            mantenimientoViewModel.evaluarAlertas(vehiculoSeleccionado!!.id, km)
+                            if (km < actualKm) {
+                                showOdometroWarning = true
+                            } else {
+                                vehiculoViewModel.actualizarKilometraje(vehiculoSeleccionado!!.id, km)
+                                mantenimientoViewModel.evaluarAlertas(vehiculoSeleccionado!!.id, km)
+                                showKmDialog = false
+                            }
                         }
-                        showKmDialog = false
                     },
                     shape = RoundedCornerShape(10.dp)
                 ) {
@@ -534,6 +538,37 @@ fun DashboardScreen(
             dismissButton = {
                 TextButton(onClick = { showKmDialog = false }) {
                     Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    if (showOdometroWarning) {
+        AlertDialog(
+            onDismissRequest = { showOdometroWarning = false },
+            title = { Text("⚠️ Advertencia de Odómetro Menor") },
+            text = {
+                Text("El nuevo kilometraje (${nuevoKmText}) es menor que el registro actual (${vehiculoSeleccionado?.kilometrajeActual} km).\n\n¿Deseas confirmar la lectura anómala (ej. reemplazo de tablero)?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val km = nuevoKmText.toIntOrNull()
+                        if (km != null && vehiculoSeleccionado != null) {
+                            vehiculoViewModel.actualizarKilometraje(vehiculoSeleccionado!!.id, km, "Lectura menor / reemplazo de tablero")
+                            mantenimientoViewModel.evaluarAlertas(vehiculoSeleccionado!!.id, km)
+                        }
+                        showOdometroWarning = false
+                        showKmDialog = false
+                    },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Sí, confirmar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showOdometroWarning = false }) {
+                    Text("Corregir")
                 }
             }
         )
@@ -566,7 +601,10 @@ private fun DashboardStat(
 }
 
 @Composable
-fun ItemAlertaCard(alerta: MantenimientoProgramado) {
+fun ItemAlertaCard(
+    alerta: MantenimientoProgramado,
+    onPosponerClick: () -> Unit
+) {
     val isVencido = alerta.estado == EstadoMantenimiento.VENCIDO
     val containerColor = if (isVencido) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer
     val contentColor = if (isVencido) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onTertiaryContainer
@@ -628,6 +666,15 @@ fun ItemAlertaCard(alerta: MantenimientoProgramado) {
             alerta.fechaObjetivo?.let { f ->
                 val dateStr = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(f))
                 Text(text = "• Fecha objetivo: $dateStr", fontSize = 13.sp, color = contentColor)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = onPosponerClick,
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Posponer (+7 días)", fontSize = 12.sp, color = contentColor)
             }
         }
     }

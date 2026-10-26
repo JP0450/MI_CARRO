@@ -19,10 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Air
-import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.OilBarrel
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -30,7 +27,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -44,7 +40,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -56,6 +51,27 @@ import com.unaula.proyecto_final.ui.components.DatePickerField
 import com.unaula.proyecto_final.ui.viewmodel.MantenimientoViewModel
 import com.unaula.proyecto_final.ui.viewmodel.VehiculoViewModel
 
+data class PlantillaMantenimiento(
+    val titulo: String,
+    val descripcion: String,
+    val categoria: String,
+    val frecuenciaKm: Int,
+    val frecuenciaMeses: Int
+)
+
+val plantillasMantenimientoPredefinidas = listOf(
+    PlantillaMantenimiento("Cambio de Aceite de Motor", "Cambio de aceite de motor y filtro de aceite.", "Aceite", 5000, 6),
+    PlantillaMantenimiento("Kit de Arrastre / Transmisión", "Reemplazo de cadena, piñón y plato de transmisión.", "Transmisión", 20000, 12),
+    PlantillaMantenimiento("Correas de Distribución", "Cambio de correa de repartición/distribución y tensores.", "Suspensión", 40000, 24),
+    PlantillaMantenimiento("Pastillas y Discos de Frenos", "Inspección y cambio de pastillas o bandas de freno.", "Frenos", 15000, 12),
+    PlantillaMantenimiento("Filtro de Aire", "Reemplazo del elemento filtrante de aire del motor.", "Filtros", 10000, 12),
+    PlantillaMantenimiento("Filtro de Combustible", "Reemplazo de filtro de gasolina o diésel.", "Filtros", 15000, 12),
+    PlantillaMantenimiento("Líquido de Frenos", "Purgado y reemplazo completo del líquido de frenos.", "Frenos", 20000, 12),
+    PlantillaMantenimiento("Alineación y Balanceo", "Alineación de dirección, balanceo y rotación de llantas.", "Llantas", 10000, 6),
+    PlantillaMantenimiento("Bujías y Sistema de Encendido", "Reemplazo de bujías de encendido y revisión de cables.", "Otros", 20000, 12),
+    PlantillaMantenimiento("Revisión General / Periódica", "Chequeo integral de fluidos, suspensión y sistemas eléctricos.", "Otros", 5000, 6)
+)
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ProgramarMantenimientoScreen(
@@ -64,6 +80,8 @@ fun ProgramarMantenimientoScreen(
     onNavigateBack: () -> Unit
 ) {
     val vehiculoSeleccionado by vehiculoViewModel.vehiculoSeleccionado.collectAsState()
+    val categorias by mantenimientoViewModel.categorias.collectAsState()
+
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -71,6 +89,7 @@ fun ProgramarMantenimientoScreen(
 
     var tituloText by remember { mutableStateOf("") }
     var descripcionText by remember { mutableStateOf("") }
+    var categoriaSeleccionada by remember { mutableStateOf("Otros") }
     var criterioSeleccionado by remember { mutableStateOf(CriterioAlerta.AMBOS) }
     var kmObjetivoText by remember { mutableStateOf((kmActual + 5000).toString()) }
     var fechaObjetivoTimestamp by remember { mutableStateOf<Long?>(System.currentTimeMillis() + (180L * 24 * 60 * 60 * 1000)) }
@@ -78,6 +97,9 @@ fun ProgramarMantenimientoScreen(
     var frecuenciaMesesText by remember { mutableStateOf("6") }
 
     var criterioDropdownExpanded by remember { mutableStateOf(false) }
+    var plantillaDropdownExpanded by remember { mutableStateOf(false) }
+    var categoriaDropdownExpanded by remember { mutableStateOf(false) }
+    var plantillaSeleccionadaNombre by remember { mutableStateOf("Seleccionar Mantenimiento Predeterminado...") }
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.White,
@@ -120,7 +142,7 @@ fun ProgramarMantenimientoScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Plantillas Rápidas para Mantenimiento Periódico
+            // Plantillas Rápidas
             Text(
                 text = "Plantillas Rápidas de Mantenimiento:",
                 style = MaterialTheme.typography.titleSmall,
@@ -129,121 +151,116 @@ fun ProgramarMantenimientoScreen(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
+            ExposedDropdownMenuBox(
+                expanded = plantillaDropdownExpanded,
+                onExpandedChange = { plantillaDropdownExpanded = !plantillaDropdownExpanded }
             ) {
-                FilterChip(
-                    selected = tituloText == "Cambio de Aceite de Motor",
-                    onClick = {
-                        tituloText = "Cambio de Aceite de Motor"
-                        descripcionText = "Cambio de aceite de motor y filtro de aceite."
-                        frecuenciaKmText = "5000"
-                        frecuenciaMesesText = "6"
-                        kmObjetivoText = (kmActual + 5000).toString()
-                        fechaObjetivoTimestamp = System.currentTimeMillis() + (180L * 24 * 60 * 60 * 1000)
-                        criterioSeleccionado = CriterioAlerta.AMBOS
-                    },
-                    label = { Text("🛢️ Aceite (5.000 km)") }
+                OutlinedTextField(
+                    value = plantillaSeleccionadaNombre,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Seleccionar de la lista predeterminada") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = plantillaDropdownExpanded) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
                 )
+                ExposedDropdownMenu(
+                    expanded = plantillaDropdownExpanded,
+                    onDismissRequest = { plantillaDropdownExpanded = false }
+                ) {
+                    plantillasMantenimientoPredefinidas.forEach { plantilla ->
+                        DropdownMenuItem(
+                            text = { Text("${plantilla.titulo} (${plantilla.frecuenciaKm} km / ${plantilla.frecuenciaMeses} meses)") },
+                            onClick = {
+                                plantillaSeleccionadaNombre = plantilla.titulo
+                                tituloText = plantilla.titulo
+                                descripcionText = plantilla.descripcion
+                                categoriaSeleccionada = plantilla.categoria
+                                frecuenciaKmText = plantilla.frecuenciaKm.toString()
+                                frecuenciaMesesText = plantilla.frecuenciaMeses.toString()
+                                kmObjetivoText = (kmActual + plantilla.frecuenciaKm).toString()
+                                fechaObjetivoTimestamp = System.currentTimeMillis() + (plantilla.frecuenciaMeses * 30L * 24 * 60 * 60 * 1000)
+                                criterioSeleccionado = CriterioAlerta.AMBOS
+                                plantillaDropdownExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
 
-                FilterChip(
-                    selected = tituloText == "Cambio de Filtro de Aire",
-                    onClick = {
-                        tituloText = "Cambio de Filtro de Aire"
-                        descripcionText = "Reemplazo del elemento filtrante de aire del motor."
-                        frecuenciaKmText = "10000"
-                        frecuenciaMesesText = "12"
-                        kmObjetivoText = (kmActual + 10000).toString()
-                        fechaObjetivoTimestamp = System.currentTimeMillis() + (365L * 24 * 60 * 60 * 1000)
-                        criterioSeleccionado = CriterioAlerta.AMBOS
-                    },
-                    label = { Text("🌬️ Filtro Aire (10.000 km)") }
+            Spacer(modifier = Modifier.height(14.dp))
+
+            OutlinedTextField(
+                value = tituloText,
+                onValueChange = { tituloText = it },
+                label = { Text("Título / Nombre del Mantenimiento") },
+                placeholder = { Text("Ej. Cambio de Aceite, Frenos...") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Selector de Categoría (RF-12)
+            ExposedDropdownMenuBox(
+                expanded = categoriaDropdownExpanded,
+                onExpandedChange = { categoriaDropdownExpanded = !categoriaDropdownExpanded }
+            ) {
+                OutlinedTextField(
+                    value = categoriaSeleccionada,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Categoría de Mantenimiento") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoriaDropdownExpanded) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
                 )
+                ExposedDropdownMenu(
+                    expanded = categoriaDropdownExpanded,
+                    onDismissRequest = { categoriaDropdownExpanded = false }
+                ) {
+                    categorias.forEach { cat ->
+                        DropdownMenuItem(
+                            text = { Text(cat.nombre) },
+                            onClick = {
+                                categoriaSeleccionada = cat.nombre
+                                categoriaDropdownExpanded = false
+                            }
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            if (isLandscape) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    OutlinedTextField(
-                        value = tituloText,
-                        onValueChange = { tituloText = it },
-                        label = { Text("Título / Servicio") },
-                        placeholder = { Text("Ej. Cambio de Aceite o Filtro") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    ExposedDropdownMenuBox(
-                        expanded = criterioDropdownExpanded,
-                        onExpandedChange = { criterioDropdownExpanded = !criterioDropdownExpanded },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        OutlinedTextField(
-                            value = criterioSeleccionado.label,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Criterio Alerta") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = criterioDropdownExpanded) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = criterioDropdownExpanded,
-                            onDismissRequest = { criterioDropdownExpanded = false }
-                        ) {
-                            CriterioAlerta.entries.forEach { crit ->
-                                DropdownMenuItem(
-                                    text = { Text(crit.label) },
-                                    onClick = {
-                                        criterioSeleccionado = crit
-                                        criterioDropdownExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-            } else {
+            ExposedDropdownMenuBox(
+                expanded = criterioDropdownExpanded,
+                onExpandedChange = { criterioDropdownExpanded = !criterioDropdownExpanded }
+            ) {
                 OutlinedTextField(
-                    value = tituloText,
-                    onValueChange = { tituloText = it },
-                    label = { Text("Título / Nombre del Mantenimiento") },
-                    placeholder = { Text("Ej. Cambio de Aceite de Motor / Filtro de Aire") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    value = criterioSeleccionado.label,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Criterio de Alerta") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = criterioDropdownExpanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
                 )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                ExposedDropdownMenuBox(
+                ExposedDropdownMenu(
                     expanded = criterioDropdownExpanded,
-                    onExpandedChange = { criterioDropdownExpanded = !criterioDropdownExpanded }
+                    onDismissRequest = { criterioDropdownExpanded = false }
                 ) {
-                    OutlinedTextField(
-                        value = criterioSeleccionado.label,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Criterio de Alerta") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = criterioDropdownExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = criterioDropdownExpanded,
-                        onDismissRequest = { criterioDropdownExpanded = false }
-                    ) {
-                        CriterioAlerta.entries.forEach { crit ->
-                            DropdownMenuItem(
-                                text = { Text(crit.label) },
-                                onClick = {
-                                    criterioSeleccionado = crit
-                                    criterioDropdownExpanded = false
-                                }
-                            )
-                        }
+                    CriterioAlerta.entries.forEach { crit ->
+                        DropdownMenuItem(
+                            text = { Text(crit.label) },
+                            onClick = {
+                                criterioSeleccionado = crit
+                                criterioDropdownExpanded = false
+                            }
+                        )
                     }
                 }
             }
@@ -312,7 +329,6 @@ fun ProgramarMantenimientoScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Tarjeta informativa del intervalo
             val freqKm = frecuenciaKmText.toIntOrNull() ?: 0
             val targetKm = kmObjetivoText.toIntOrNull() ?: (kmActual + freqKm)
 
@@ -352,6 +368,7 @@ fun ProgramarMantenimientoScreen(
                                 vehiculoId = vehiculoSeleccionado!!.id,
                                 titulo = tituloText,
                                 descripcion = descripcionText,
+                                categoria = categoriaSeleccionada,
                                 criterio = criterioSeleccionado,
                                 kilometrajeObjetivo = kmObj,
                                 fechaObjetivo = fechaObjetivoTimestamp,

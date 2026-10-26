@@ -1,6 +1,7 @@
 package com.unaula.proyecto_final.data
 
 import android.content.Context
+import com.unaula.proyecto_final.model.CategoriaMantenimiento
 import com.unaula.proyecto_final.model.CriterioAlerta
 import com.unaula.proyecto_final.model.EstadoMantenimiento
 import com.unaula.proyecto_final.model.MantenimientoProgramado
@@ -20,10 +21,24 @@ class MantenimientoRepository(private val context: Context) {
     private val _realizados = MutableStateFlow<List<MantenimientoRealizado>>(emptyList())
     val realizados: StateFlow<List<MantenimientoRealizado>> = _realizados.asStateFlow()
 
+    private val _categorias = MutableStateFlow<List<CategoriaMantenimiento>>(
+        listOf(
+            CategoriaMantenimiento(id = "c1", nombre = "Aceite"),
+            CategoriaMantenimiento(id = "c2", nombre = "Filtros"),
+            CategoriaMantenimiento(id = "c3", nombre = "Frenos"),
+            CategoriaMantenimiento(id = "c4", nombre = "Llantas"),
+            CategoriaMantenimiento(id = "c5", nombre = "Batería"),
+            CategoriaMantenimiento(id = "c6", nombre = "Refrigeración"),
+            CategoriaMantenimiento(id = "c7", nombre = "Suspensión"),
+            CategoriaMantenimiento(id = "c8", nombre = "Transmisión"),
+            CategoriaMantenimiento(id = "c9", nombre = "Otros")
+        )
+    )
+    val categorias: StateFlow<List<CategoriaMantenimiento>> = _categorias.asStateFlow()
+
     private val firestore = FirebaseProvider.getFirestore(context)
 
     init {
-        // Cargar datos de muestra iniciales por defecto
         val unMesMillis = 30L * 24 * 60 * 60 * 1000
         _programados.value = listOf(
             MantenimientoProgramado(
@@ -31,6 +46,7 @@ class MantenimientoRepository(private val context: Context) {
                 vehiculoId = "v1",
                 titulo = "Cambio de Aceite de Motor",
                 descripcion = "Aceite sintético 10W-30 y filtro de aceite",
+                categoria = "Aceite",
                 criterio = CriterioAlerta.AMBOS,
                 kilometrajeObjetivo = 50000,
                 fechaObjetivo = System.currentTimeMillis() + unMesMillis,
@@ -43,6 +59,7 @@ class MantenimientoRepository(private val context: Context) {
                 vehiculoId = "v1",
                 titulo = "Revisión de Frenos",
                 descripcion = "Cambio de pastillas delanteras y rectificación de discos",
+                categoria = "Frenos",
                 criterio = CriterioAlerta.KILOMETRAJE,
                 kilometrajeObjetivo = 46000,
                 frecuenciaKm = 20000,
@@ -53,6 +70,7 @@ class MantenimientoRepository(private val context: Context) {
                 vehiculoId = "v2",
                 titulo = "Mantenimiento de Cadena y Kit de Arrastre",
                 descripcion = "Limpieza, lubricación y tensión de cadena",
+                categoria = "Transmisión",
                 criterio = CriterioAlerta.KILOMETRAJE,
                 kilometrajeObjetivo = 13000,
                 frecuenciaKm = 3000,
@@ -69,6 +87,8 @@ class MantenimientoRepository(private val context: Context) {
                 taller = "Taller Central Toyota",
                 fecha = System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000),
                 kilometrajeRealizado = 40000,
+                costoManoDeObra = 40000.0,
+                costoRepuestos = 280000.0,
                 costoTotal = 320000.0,
                 observaciones = "Se cambió batería por garantía expirada",
                 repuestos = listOf(
@@ -76,6 +96,9 @@ class MantenimientoRepository(private val context: Context) {
                         id = "rep1",
                         nombre = "Batería Mac Gold",
                         marca = "MAC",
+                        referencia = "GC-55",
+                        cantidad = 1,
+                        proveedor = "Almacén Baterías",
                         costo = 280000.0,
                         garantiaMeses = 12,
                         garantiaKm = 20000,
@@ -90,7 +113,6 @@ class MantenimientoRepository(private val context: Context) {
     }
 
     private fun loadInitialData() {
-        // Cargar Firestore si está disponible
         firestore?.collection("mantenimientos_programados")
             ?.addSnapshotListener { snapshot, error ->
                 if (error == null && snapshot != null) {
@@ -101,12 +123,14 @@ class MantenimientoRepository(private val context: Context) {
                                 vehiculoId = doc.getString("vehiculoId") ?: "",
                                 titulo = doc.getString("titulo") ?: "",
                                 descripcion = doc.getString("descripcion") ?: "",
+                                categoria = doc.getString("categoria") ?: "Otros",
                                 criterio = CriterioAlerta.valueOf(doc.getString("criterio") ?: "AMBOS"),
                                 kilometrajeObjetivo = doc.getLong("kilometrajeObjetivo")?.toInt(),
                                 fechaObjetivo = doc.getLong("fechaObjetivo"),
                                 frecuenciaKm = doc.getLong("frecuenciaKm")?.toInt(),
                                 frecuenciaMeses = doc.getLong("frecuenciaMeses")?.toInt(),
-                                estado = EstadoMantenimiento.valueOf(doc.getString("estado") ?: "AL_DIA")
+                                estado = EstadoMantenimiento.valueOf(doc.getString("estado") ?: "AL_DIA"),
+                                pospuestoHasta = doc.getLong("pospuestoHasta")
                             )
                         } catch (e: Exception) {
                             null
@@ -119,52 +143,6 @@ class MantenimientoRepository(private val context: Context) {
                     }
                 }
             }
-
-        firestore?.collection("mantenimientos_realizados")
-            ?.addSnapshotListener { snapshot, error ->
-                if (error == null && snapshot != null) {
-                    val list = snapshot.documents.mapNotNull { doc ->
-                        try {
-                            val repuestosList = (doc.get("repuestos") as? List<*>)?.mapNotNull { rMap ->
-                                if (rMap is Map<*, *>) {
-                                    Repuesto(
-                                        id = rMap["id"] as? String ?: "",
-                                        nombre = rMap["nombre"] as? String ?: "",
-                                        marca = rMap["marca"] as? String ?: "",
-                                        costo = (rMap["costo"] as? Number)?.toDouble() ?: 0.0,
-                                        garantiaMeses = (rMap["garantiaMeses"] as? Number)?.toInt() ?: 0,
-                                        garantiaKm = (rMap["garantiaKm"] as? Number)?.toInt() ?: 0,
-                                        fechaInstalacion = (rMap["fechaInstalacion"] as? Number)?.toLong() ?: System.currentTimeMillis(),
-                                        kilometrajeInstalacion = (rMap["kilometrajeInstalacion"] as? Number)?.toInt() ?: 0
-                                    )
-                                } else null
-                            } ?: emptyList()
-
-                            MantenimientoRealizado(
-                                id = doc.id,
-                                vehiculoId = doc.getString("vehiculoId") ?: "",
-                                mantenimientoProgramadoId = doc.getString("mantenimientoProgramadoId"),
-                                titulo = doc.getString("titulo") ?: "",
-                                tipo = TipoMantenimiento.valueOf(doc.getString("tipo") ?: "PREVENTIVO"),
-                                taller = doc.getString("taller") ?: "",
-                                fecha = doc.getLong("fecha") ?: System.currentTimeMillis(),
-                                kilometrajeRealizado = (doc.getLong("kilometrajeRealizado") ?: 0).toInt(),
-                                costoTotal = doc.getDouble("costoTotal") ?: 0.0,
-                                observaciones = doc.getString("observaciones") ?: "",
-                                evidenciasUrls = (doc.get("evidenciasUrls") as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
-                                repuestos = repuestosList
-                            )
-                        } catch (e: Exception) {
-                            null
-                        }
-                    }
-                    if (list.isNotEmpty()) {
-                        _realizados.value = list
-                    } else {
-                        migrarRealizadosAFirestore()
-                    }
-                }
-            }
     }
 
     private fun migrarProgramadosAFirestore() {
@@ -174,43 +152,14 @@ class MantenimientoRepository(private val context: Context) {
                     "vehiculoId" to item.vehiculoId,
                     "titulo" to item.titulo,
                     "descripcion" to item.descripcion,
+                    "categoria" to item.categoria,
                     "criterio" to item.criterio.name,
                     "kilometrajeObjetivo" to item.kilometrajeObjetivo,
                     "fechaObjetivo" to item.fechaObjetivo,
                     "frecuenciaKm" to item.frecuenciaKm,
                     "frecuenciaMeses" to item.frecuenciaMeses,
-                    "estado" to item.estado.name
-                )
-            )
-        }
-    }
-
-    private fun migrarRealizadosAFirestore() {
-        _realizados.value.forEach { item ->
-            firestore?.collection("mantenimientos_realizados")?.document(item.id)?.set(
-                mapOf(
-                    "vehiculoId" to item.vehiculoId,
-                    "mantenimientoProgramadoId" to item.mantenimientoProgramadoId,
-                    "titulo" to item.titulo,
-                    "tipo" to item.tipo.name,
-                    "taller" to item.taller,
-                    "fecha" to item.fecha,
-                    "kilometrajeRealizado" to item.kilometrajeRealizado,
-                    "costoTotal" to item.costoTotal,
-                    "observaciones" to item.observaciones,
-                    "evidenciasUrls" to item.evidenciasUrls,
-                    "repuestos" to item.repuestos.map { rep ->
-                        mapOf(
-                            "id" to rep.id,
-                            "nombre" to rep.nombre,
-                            "marca" to rep.marca,
-                            "costo" to rep.costo,
-                            "garantiaMeses" to rep.garantiaMeses,
-                            "garantiaKm" to rep.garantiaKm,
-                            "fechaInstalacion" to rep.fechaInstalacion,
-                            "kilometrajeInstalacion" to rep.kilometrajeInstalacion
-                        )
-                    }
+                    "estado" to item.estado.name,
+                    "pospuestoHasta" to item.pospuestoHasta
                 )
             )
         }
@@ -218,7 +167,7 @@ class MantenimientoRepository(private val context: Context) {
 
     fun guardarProgramado(mantenimiento: MantenimientoProgramado) {
         val idToUse = if (mantenimiento.id.isBlank()) UUID.randomUUID().toString() else mantenimiento.id
-        val item = mantenimiento.copy(id = idToUse)
+        val item = mantenimiento.copy(id = idToUse, sincronizado = firestore != null)
 
         val currentList = _programados.value.toMutableList()
         val index = currentList.indexOfFirst { it.id == idToUse }
@@ -234,25 +183,51 @@ class MantenimientoRepository(private val context: Context) {
                 "vehiculoId" to item.vehiculoId,
                 "titulo" to item.titulo,
                 "descripcion" to item.descripcion,
+                "categoria" to item.categoria,
                 "criterio" to item.criterio.name,
                 "kilometrajeObjetivo" to item.kilometrajeObjetivo,
                 "fechaObjetivo" to item.fechaObjetivo,
                 "frecuenciaKm" to item.frecuenciaKm,
                 "frecuenciaMeses" to item.frecuenciaMeses,
-                "estado" to item.estado.name
+                "estado" to item.estado.name,
+                "pospuestoHasta" to item.pospuestoHasta
             )
         )
     }
 
+    fun posponerAlerta(mantenimientoId: String) {
+        val currentList = _programados.value.toMutableList()
+        val index = currentList.indexOfFirst { it.id == mantenimientoId }
+        if (index >= 0) {
+            val item = currentList[index]
+            val nuevaFecha = (item.fechaObjetivo ?: System.currentTimeMillis()) + (7L * 24 * 60 * 60 * 1000)
+            val nuevoKm = (item.kilometrajeObjetivo ?: 0) + 500
+            val updated = item.copy(
+                fechaObjetivo = nuevaFecha,
+                kilometrajeObjetivo = nuevoKm,
+                pospuestoHasta = nuevaFecha
+            )
+            currentList[index] = updated
+            _programados.value = currentList
+
+            firestore?.collection("mantenimientos_programados")?.document(mantenimientoId)?.update(
+                mapOf(
+                    "fechaObjetivo" to nuevaFecha,
+                    "kilometrajeObjetivo" to nuevoKm,
+                    "pospuestoHasta" to nuevaFecha
+                )
+            )
+        }
+    }
+
     fun registrarMantenimientoRealizado(realizado: MantenimientoRealizado) {
         val idToUse = if (realizado.id.isBlank()) UUID.randomUUID().toString() else realizado.id
-        val item = realizado.copy(id = idToUse)
+        val item = realizado.copy(id = idToUse, sincronizado = firestore != null)
 
         val currentList = _realizados.value.toMutableList()
         currentList.add(0, item)
         _realizados.value = currentList
 
-        // Si fue originado de un mantenimiento programado, actualizarlo como REALIZADO o reprogramar siguiente
         if (!item.mantenimientoProgramadoId.isNullOrBlank()) {
             val progList = _programados.value.toMutableList()
             val index = progList.indexOfFirst { it.id == item.mantenimientoProgramadoId }
@@ -273,84 +248,28 @@ class MantenimientoRepository(private val context: Context) {
                 guardarProgramado(updatedProg)
             }
         }
-
-        firestore?.collection("mantenimientos_realizados")?.document(idToUse)?.set(
-            mapOf(
-                "vehiculoId" to item.vehiculoId,
-                "mantenimientoProgramadoId" to item.mantenimientoProgramadoId,
-                "titulo" to item.titulo,
-                "tipo" to item.tipo.name,
-                "taller" to item.taller,
-                "fecha" to item.fecha,
-                "kilometrajeRealizado" to item.kilometrajeRealizado,
-                "costoTotal" to item.costoTotal,
-                "observaciones" to item.observaciones,
-                "evidenciasUrls" to item.evidenciasUrls,
-                "repuestos" to item.repuestos.map { rep ->
-                    mapOf(
-                        "id" to rep.id,
-                        "nombre" to rep.nombre,
-                        "marca" to rep.marca,
-                        "costo" to rep.costo,
-                        "garantiaMeses" to rep.garantiaMeses,
-                        "garantiaKm" to rep.garantiaKm,
-                        "fechaInstalacion" to rep.fechaInstalacion,
-                        "kilometrajeInstalacion" to rep.kilometrajeInstalacion
-                    )
-                }
-            )
-        )
     }
 
     fun evaluarEstadosMantenimientos(vehiculoId: String, kmActual: Int) {
-        val progList = _programados.value.toMutableList()
-        var changed = false
-        val ahora = System.currentTimeMillis()
-        val margenKm = 500 // Alerta cuando falten 500 km o menos
+        val currentList = _programados.value.map { prog ->
+            if (prog.vehiculoId == vehiculoId) {
+                val ahora = System.currentTimeMillis()
+                val vencidoKm = prog.kilometrajeObjetivo != null && kmActual >= prog.kilometrajeObjetivo
+                val vencidoFecha = prog.fechaObjetivo != null && ahora >= prog.fechaObjetivo
 
-        progList.forEachIndexed { i, prog ->
-            if (prog.vehiculoId == vehiculoId && prog.estado != EstadoMantenimiento.REALIZADO) {
-                var esVencido = false
-                var esProximo = false
-
-                // Evaluar por Kilometraje
-                if (prog.criterio == CriterioAlerta.KILOMETRAJE || prog.criterio == CriterioAlerta.AMBOS) {
-                    prog.kilometrajeObjetivo?.let { kmObj ->
-                        if (kmActual >= kmObj) {
-                            esVencido = true
-                        } else if (kmObj - kmActual <= margenKm) {
-                            esProximo = true
-                        }
-                    }
-                }
-
-                // Evaluar por Fecha
-                if (prog.criterio == CriterioAlerta.FECHA || prog.criterio == CriterioAlerta.AMBOS) {
-                    prog.fechaObjetivo?.let { fObj ->
-                        val diasSombra = 7L * 24 * 60 * 60 * 1000 // 7 días de anticipación
-                        if (ahora >= fObj) {
-                            esVencido = true
-                        } else if (fObj - ahora <= diasSombra) {
-                            esProximo = true
-                        }
-                    }
-                }
+                val proximoKm = prog.kilometrajeObjetivo != null && kmActual >= (prog.kilometrajeObjetivo - 500)
+                val proximoFecha = prog.fechaObjetivo != null && ahora >= (prog.fechaObjetivo - (7L * 24 * 60 * 60 * 1000))
 
                 val nuevoEstado = when {
-                    esVencido -> EstadoMantenimiento.VENCIDO
-                    esProximo -> EstadoMantenimiento.PROXIMO
+                    vencidoKm || vencidoFecha -> EstadoMantenimiento.VENCIDO
+                    proximoKm || proximoFecha -> EstadoMantenimiento.PROXIMO
                     else -> EstadoMantenimiento.AL_DIA
                 }
-
-                if (prog.estado != nuevoEstado) {
-                    progList[i] = prog.copy(estado = nuevoEstado)
-                    changed = true
-                }
+                prog.copy(estado = nuevoEstado)
+            } else {
+                prog
             }
         }
-
-        if (changed) {
-            _programados.value = progList
-        }
+        _programados.value = currentList
     }
 }

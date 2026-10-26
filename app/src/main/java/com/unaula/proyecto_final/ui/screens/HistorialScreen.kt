@@ -1,5 +1,6 @@
 package com.unaula.proyecto_final.ui.screens
 
+import android.content.Intent
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -43,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,6 +70,7 @@ fun HistorialScreen(
 ) {
     val vehiculos by vehiculoViewModel.vehiculos.collectAsState()
     val realizados by mantenimientoViewModel.realizados.collectAsState()
+    val context = LocalContext.current
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -100,17 +104,47 @@ fun HistorialScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text(
-                text = "Historial y auditoría",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = ColorDeepGreen
-            )
-            Text(
-                text = "Consulta los servicios y el seguimiento de tu flota",
-                style = MaterialTheme.typography.bodyMedium,
-                color = ColorTextSecondary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Historial y auditoría",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorDeepGreen
+                    )
+                    Text(
+                        text = "Consulta los servicios y exporta tu historial",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = ColorTextSecondary
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = {
+                        val csvBuilder = StringBuilder()
+                        csvBuilder.append("ID,VehiculoId,Titulo,Tipo,Taller,Fecha,Kilometraje,CostoTotal,Observaciones\n")
+                        historialFiltrado.forEach { h ->
+                            val fechaStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(h.fecha))
+                            csvBuilder.append("${h.id},${h.vehiculoId},\"${h.titulo}\",${h.tipo},\"${h.taller}\",$fechaStr,${h.kilometrajeRealizado},${h.costoTotal},\"${h.observaciones}\"\n")
+                        }
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_SUBJECT, "Historial de Mantenimientos - MiCarro")
+                            putExtra(Intent.EXTRA_TEXT, csvBuilder.toString())
+                            type = "text/plain"
+                        }
+                        val shareIntent = Intent.createChooser(sendIntent, "Exportar Historial CSV")
+                        context.startActivity(shareIntent)
+                    },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Exportar CSV")
+                }
+            }
         }
 
         if (isLandscape) {
@@ -160,16 +194,17 @@ fun HistorialScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Buscar taller, servicio...") },
+                        label = { Text("Buscar servicio / taller") },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         singleLine = true,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
                     )
                 }
             }
         } else {
-            if (vehiculos.isNotEmpty()) {
-                item {
+            item {
+                if (vehiculos.isNotEmpty()) {
                     ExposedDropdownMenuBox(
                         expanded = dropdownExpanded,
                         onExpandedChange = { dropdownExpanded = !dropdownExpanded }
@@ -178,7 +213,7 @@ fun HistorialScreen(
                             value = vehiculoFiltroActual?.let { "${it.marca} ${it.modelo} (${it.placa})" } ?: "Todos los vehículos",
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Filtrar por Vehículo") },
+                            label = { Text("Filtrar Vehículo") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
                             modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
@@ -204,34 +239,26 @@ fun HistorialScreen(
                             }
                         }
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
-            }
 
-            item {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Buscar por taller, servicio u observaciones...") },
+                    label = { Text("Buscar servicio / taller / observaciones") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
             }
         }
 
         item {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Registros", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text("${historialFiltrado.size} encontrados", style = MaterialTheme.typography.labelMedium, color = ColorTextSecondary)
-            }
-        }
-
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = filtroTipo == null,
                     onClick = { filtroTipo = null },
@@ -254,27 +281,28 @@ fun HistorialScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("No se encontraron registros de mantenimiento con los filtros seleccionados.")
+                    Box(modifier = Modifier.padding(24.dp)) {
+                        Text("No se encontraron registros en el historial.")
                     }
                 }
             }
         } else {
             items(historialFiltrado) { item ->
-                ItemHistorialCard(item)
+                HistorialItemCard(item)
             }
         }
     }
 }
 
 @Composable
-fun ItemHistorialCard(item: MantenimientoRealizado) {
+fun HistorialItemCard(item: MantenimientoRealizado) {
     var expanded by remember { mutableStateOf(false) }
-    val dateStr = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(item.fecha))
-    val numberFormat = remember { NumberFormat.getNumberInstance(Locale.forLanguageTag("es-CO")) }
-    val costoFormatted = "$ ${numberFormat.format(item.costoTotal.roundToInt())}"
+    val fechaStr = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(item.fecha))
+    val currencyFormat = NumberFormat.getCurrencyInstance(Locale("es", "CO"))
+    val costoStr = currencyFormat.format(item.costoTotal)
 
     Card(
         modifier = Modifier
@@ -282,13 +310,9 @@ fun ItemHistorialCard(item: MantenimientoRealizado) {
             .clickable { expanded = !expanded },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -297,75 +321,50 @@ fun ItemHistorialCard(item: MantenimientoRealizado) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = item.titulo,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "${item.tipo.label} • Taller: ${item.taller.ifBlank { "N/A" }}",
+                        text = "Taller: ${item.taller.ifBlank { "No especificado" }} • $fechaStr",
                         style = MaterialTheme.typography.bodySmall,
                         color = ColorTextSecondary
                     )
                 }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = costoFormatted,
+                        text = costoStr,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.titleMedium
+                        color = ColorDeepGreen
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (expanded) "Contraer" else "Expandir"
+                    Text(
+                        text = "${item.kilometrajeRealizado} km",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = ColorTextSecondary
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(text = "📅 $dateStr", fontSize = 12.sp, color = ColorTextSecondary)
-                Text(text = "🚘 ${numberFormat.format(item.kilometrajeRealizado)} km", fontSize = 12.sp, color = ColorTextSecondary)
-            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Tipo: ${item.tipo.label}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (item.tipo == TipoMantenimiento.PREVENTIVO) ColorDeepGreen else MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Bold
+                )
 
-            // Badges indicativos de repuestos u observaciones
-            if (item.repuestos.isNotEmpty() || item.observaciones.isNotBlank()) {
-                Row(
-                    modifier = Modifier.padding(top = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    if (item.repuestos.isNotEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(ColorMintAqua)
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
-                        ) {
-                            Text(
-                                text = "🛠️ ${item.repuestos.size} repuesto${if (item.repuestos.size > 1) "s" else ""}",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = ColorDeepGreen
-                            )
-                        }
-                    }
-                    if (item.observaciones.isNotBlank()) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
-                        ) {
-                            Text(
-                                text = "💬 Con notas",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = ColorTextSecondary
-                            )
-                        }
-                    }
-                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = ColorTextSecondary
+                )
             }
 
             AnimatedVisibility(visible = expanded) {
@@ -373,53 +372,25 @@ fun ItemHistorialCard(item: MantenimientoRealizado) {
                     if (item.observaciones.isNotBlank()) {
                         Text(
                             text = "Observaciones: ${item.observaciones}",
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                     }
 
                     if (item.repuestos.isNotEmpty()) {
                         Text(
-                            text = "Repuestos Instalados & Garantía:",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = ColorDeepGreen
+                            text = "Repuestos instalados (${item.repuestos.size}):",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
-
+                        Spacer(modifier = Modifier.height(2.dp))
                         item.repuestos.forEach { rep ->
-                            val repCostoFormatted = "$ ${numberFormat.format(rep.costo.roundToInt())}"
-                            val repGarantiaKmFormatted = if (rep.garantiaKm > 0) " / ${numberFormat.format(rep.garantiaKm)} km" else ""
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .padding(10.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "• ${rep.nombre} ${if (rep.marca.isNotBlank()) "(${rep.marca})" else ""}",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        text = "Garantía: ${rep.garantiaMeses} meses$repGarantiaKmFormatted",
-                                        fontSize = 11.sp,
-                                        color = ColorTextSecondary
-                                    )
-                                }
-                                Text(
-                                    text = repCostoFormatted,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = ColorDeepGreen
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "• ${rep.nombre} (${rep.marca}) - ${currencyFormat.format(rep.costo)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ColorTextSecondary
+                            )
                         }
                     }
                 }
