@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -48,12 +49,15 @@ import androidx.compose.ui.unit.sp
 import com.unaula.proyecto_final.model.MantenimientoRealizado
 import com.unaula.proyecto_final.model.TipoMantenimiento
 import com.unaula.proyecto_final.ui.theme.ColorDeepGreen
+import com.unaula.proyecto_final.ui.theme.ColorMintAqua
 import com.unaula.proyecto_final.ui.theme.ColorTextSecondary
 import com.unaula.proyecto_final.ui.viewmodel.MantenimientoViewModel
 import com.unaula.proyecto_final.ui.viewmodel.VehiculoViewModel
+import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,7 +66,6 @@ fun HistorialScreen(
     mantenimientoViewModel: MantenimientoViewModel
 ) {
     val vehiculos by vehiculoViewModel.vehiculos.collectAsState()
-    val vehiculoSeleccionado by vehiculoViewModel.vehiculoSeleccionado.collectAsState()
     val realizados by mantenimientoViewModel.realizados.collectAsState()
 
     val configuration = LocalConfiguration.current
@@ -70,11 +73,12 @@ fun HistorialScreen(
 
     var searchQuery by remember { mutableStateOf("") }
     var filtroTipo by remember { mutableStateOf<TipoMantenimiento?>(null) }
+    var filtroVehiculoId by remember { mutableStateOf<String?>(null) }
     var dropdownExpanded by remember { mutableStateOf(false) }
 
-    val historialFiltrado = remember(realizados, vehiculoSeleccionado, searchQuery, filtroTipo) {
+    val historialFiltrado = remember(realizados, filtroVehiculoId, searchQuery, filtroTipo) {
         realizados.filter { item ->
-            val coincideVehiculo = vehiculoSeleccionado == null || item.vehiculoId == vehiculoSeleccionado?.id
+            val coincideVehiculo = filtroVehiculoId == null || item.vehiculoId == filtroVehiculoId
             val coincideSearch = searchQuery.isBlank() ||
                     item.titulo.contains(searchQuery, ignoreCase = true) ||
                     item.taller.contains(searchQuery, ignoreCase = true) ||
@@ -84,6 +88,8 @@ fun HistorialScreen(
             coincideVehiculo && coincideSearch && coincideTipo
         }
     }
+
+    val vehiculoFiltroActual = vehiculos.find { it.id == filtroVehiculoId }
 
     LazyColumn(
         modifier = Modifier
@@ -120,7 +126,7 @@ fun HistorialScreen(
                             modifier = Modifier.weight(1f)
                         ) {
                             OutlinedTextField(
-                                value = vehiculoSeleccionado?.let { "${it.marca} ${it.modelo} (${it.placa})" } ?: "Todos los vehículos",
+                                value = vehiculoFiltroActual?.let { "${it.marca} ${it.modelo} (${it.placa})" } ?: "Todos los vehículos",
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text("Filtrar Vehículo") },
@@ -131,11 +137,18 @@ fun HistorialScreen(
                                 expanded = dropdownExpanded,
                                 onDismissRequest = { dropdownExpanded = false }
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Todos los vehículos") },
+                                    onClick = {
+                                        filtroVehiculoId = null
+                                        dropdownExpanded = false
+                                    }
+                                )
                                 vehiculos.forEach { vehiculo ->
                                     DropdownMenuItem(
                                         text = { Text("${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa})") },
                                         onClick = {
-                                            vehiculoViewModel.seleccionarVehiculo(vehiculo)
+                                            filtroVehiculoId = vehiculo.id
                                             dropdownExpanded = false
                                         }
                                     )
@@ -162,7 +175,7 @@ fun HistorialScreen(
                         onExpandedChange = { dropdownExpanded = !dropdownExpanded }
                     ) {
                         OutlinedTextField(
-                            value = vehiculoSeleccionado?.let { "${it.marca} ${it.modelo} (${it.placa})" } ?: "Todos los vehículos",
+                            value = vehiculoFiltroActual?.let { "${it.marca} ${it.modelo} (${it.placa})" } ?: "Todos los vehículos",
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Filtrar por Vehículo") },
@@ -173,11 +186,18 @@ fun HistorialScreen(
                             expanded = dropdownExpanded,
                             onDismissRequest = { dropdownExpanded = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("Todos los vehículos") },
+                                onClick = {
+                                    filtroVehiculoId = null
+                                    dropdownExpanded = false
+                                }
+                            )
                             vehiculos.forEach { vehiculo ->
                                 DropdownMenuItem(
                                     text = { Text("${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa})") },
                                     onClick = {
-                                        vehiculoViewModel.seleccionarVehiculo(vehiculo)
+                                        filtroVehiculoId = vehiculo.id
                                         dropdownExpanded = false
                                     }
                                 )
@@ -253,6 +273,8 @@ fun HistorialScreen(
 fun ItemHistorialCard(item: MantenimientoRealizado) {
     var expanded by remember { mutableStateOf(false) }
     val dateStr = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(item.fecha))
+    val numberFormat = remember { NumberFormat.getNumberInstance(Locale.forLanguageTag("es-CO")) }
+    val costoFormatted = "$ ${numberFormat.format(item.costoTotal.roundToInt())}"
 
     Card(
         modifier = Modifier
@@ -280,13 +302,14 @@ fun ItemHistorialCard(item: MantenimientoRealizado) {
                     )
                     Text(
                         text = "${item.tipo.label} • Taller: ${item.taller.ifBlank { "N/A" }}",
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ColorTextSecondary
                     )
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "$${item.costoTotal}",
+                        text = costoFormatted,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.titleMedium
@@ -294,7 +317,7 @@ fun ItemHistorialCard(item: MantenimientoRealizado) {
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
                         imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null
+                        contentDescription = if (expanded) "Contraer" else "Expandir"
                     )
                 }
             }
@@ -302,8 +325,47 @@ fun ItemHistorialCard(item: MantenimientoRealizado) {
             Spacer(modifier = Modifier.height(6.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(text = "📅 $dateStr", fontSize = 12.sp)
-                Text(text = "🚘 ${item.kilometrajeRealizado} km", fontSize = 12.sp)
+                Text(text = "📅 $dateStr", fontSize = 12.sp, color = ColorTextSecondary)
+                Text(text = "🚘 ${numberFormat.format(item.kilometrajeRealizado)} km", fontSize = 12.sp, color = ColorTextSecondary)
+            }
+
+            // Badges indicativos de repuestos u observaciones
+            if (item.repuestos.isNotEmpty() || item.observaciones.isNotBlank()) {
+                Row(
+                    modifier = Modifier.padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (item.repuestos.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(ColorMintAqua)
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = "🛠️ ${item.repuestos.size} repuesto${if (item.repuestos.size > 1) "s" else ""}",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = ColorDeepGreen
+                            )
+                        }
+                    }
+                    if (item.observaciones.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = "💬 Con notas",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = ColorTextSecondary
+                            )
+                        }
+                    }
+                }
             }
 
             AnimatedVisibility(visible = expanded) {
@@ -320,23 +382,44 @@ fun ItemHistorialCard(item: MantenimientoRealizado) {
                         Text(
                             text = "Repuestos Instalados & Garantía:",
                             fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ColorDeepGreen
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
 
                         item.repuestos.forEach { rep ->
+                            val repCostoFormatted = "$ ${numberFormat.format(rep.costo.roundToInt())}"
+                            val repGarantiaKmFormatted = if (rep.garantiaKm > 0) " / ${numberFormat.format(rep.garantiaKm)} km" else ""
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(6.dp))
+                                    .clip(RoundedCornerShape(8.dp))
                                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .padding(8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                    .padding(10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(text = "• ${rep.nombre} (${rep.marca})", fontSize = 13.sp)
-                                Text(text = "$${rep.costo} | ${rep.garantiaMeses}m garantía", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "• ${rep.nombre} ${if (rep.marca.isNotBlank()) "(${rep.marca})" else ""}",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = "Garantía: ${rep.garantiaMeses} meses$repGarantiaKmFormatted",
+                                        fontSize = 11.sp,
+                                        color = ColorTextSecondary
+                                    )
+                                }
+                                Text(
+                                    text = repCostoFormatted,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = ColorDeepGreen
+                                )
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                         }
                     }
                 }

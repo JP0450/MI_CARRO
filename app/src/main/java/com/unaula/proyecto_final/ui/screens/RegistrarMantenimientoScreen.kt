@@ -331,6 +331,14 @@ fun RegistrarMantenimientoScreen(
                                 singleLine = true,
                                 modifier = Modifier.weight(1f)
                             )
+                            OutlinedTextField(
+                                value = repGarantiaKm,
+                                onValueChange = { repGarantiaKm = it },
+                                label = { Text("Garantía (KM)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -338,17 +346,24 @@ fun RegistrarMantenimientoScreen(
                         Button(
                             onClick = {
                                 if (repNombre.isNotBlank()) {
+                                    val costoRepuesto = repCosto.toDoubleOrNull() ?: 0.0
                                     repuestosList.add(
                                         Repuesto(
                                             nombre = repNombre,
                                             marca = repMarca,
-                                            costo = repCosto.toDoubleOrNull() ?: 0.0,
+                                            costo = costoRepuesto,
                                             garantiaMeses = repGarantiaMeses.toIntOrNull() ?: 0,
                                             garantiaKm = repGarantiaKm.toIntOrNull() ?: 0,
                                             fechaInstalacion = fechaEjecucion,
                                             kilometrajeInstalacion = kmRealizadoText.toIntOrNull() ?: 0
                                         )
                                     )
+                                    // Sugerir o actualizar el costo total si está vacío
+                                    val actualTotal = costoTotalText.toDoubleOrNull() ?: 0.0
+                                    if (actualTotal == 0.0) {
+                                        val sumaRepuestos = repuestosList.sumOf { it.costo }
+                                        costoTotalText = sumaRepuestos.toInt().toString()
+                                    }
                                     repNombre = ""
                                     repMarca = ""
                                     repCosto = ""
