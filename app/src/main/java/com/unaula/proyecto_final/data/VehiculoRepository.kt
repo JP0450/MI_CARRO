@@ -12,60 +12,66 @@ import java.util.UUID
 
 class VehiculoRepository(private val context: Context) {
 
-    private val _vehiculos = MutableStateFlow<List<Vehiculo>>(emptyList())
-    val vehiculos: StateFlow<List<Vehiculo>> = _vehiculos.asStateFlow()
+    companion object {
+        private val _vehiculos = MutableStateFlow<List<Vehiculo>>(emptyList())
+        private val _historialKm = MutableStateFlow<List<HistorialKilometraje>>(emptyList())
+        private var isInitialized = false
+    }
 
-    private val _historialKm = MutableStateFlow<List<HistorialKilometraje>>(emptyList())
+    val vehiculos: StateFlow<List<Vehiculo>> = _vehiculos.asStateFlow()
     val historialKm: StateFlow<List<HistorialKilometraje>> = _historialKm.asStateFlow()
 
     private val firestore = FirebaseProvider.getFirestore(context)
 
     init {
-        val unAnioAdelante = System.currentTimeMillis() + (365L * 24 * 60 * 60 * 1000)
-        val defaultList = listOf(
-            Vehiculo(
-                id = "v1",
-                placa = "ABC-123",
-                marca = "Toyota",
-                modelo = "Corolla",
-                anio = 2021,
-                tipo = TipoVehiculo.AUTOMOVIL,
-                kilometrajeActual = 45200,
-                fechaSeguroSoat = unAnioAdelante,
-                fechaTecnoMecanica = unAnioAdelante,
-                esPrincipal = true,
-                color = "Blanco Perlado",
-                vin = "1HGCR2F33HA000001",
-                tipoCombustible = TipoCombustible.GASOLINA,
-                cilindraje = "2000 cc",
-                sincronizado = true,
-                archivado = false
-            ),
-            Vehiculo(
-                id = "v2",
-                placa = "XYZ-789",
-                marca = "Yamaha",
-                modelo = "FZ 25",
-                anio = 2023,
-                tipo = TipoVehiculo.MOTOCICLETA,
-                kilometrajeActual = 12500,
-                fechaSeguroSoat = null,
-                fechaTecnoMecanica = null,
-                esPrincipal = false,
-                color = "Negro Mate",
-                vin = "ME1RE2503P000002",
-                tipoCombustible = TipoCombustible.GASOLINA,
-                cilindraje = "250 cc",
-                sincronizado = true,
-                archivado = false
+        if (!isInitialized) {
+            isInitialized = true
+            val unAnioAdelante = System.currentTimeMillis() + (365L * 24 * 60 * 60 * 1000)
+            val defaultList = listOf(
+                Vehiculo(
+                    id = "v1",
+                    placa = "ABC-123",
+                    marca = "Toyota",
+                    modelo = "Corolla",
+                    anio = 2021,
+                    tipo = TipoVehiculo.AUTOMOVIL,
+                    kilometrajeActual = 45200,
+                    fechaSeguroSoat = unAnioAdelante,
+                    fechaTecnoMecanica = unAnioAdelante,
+                    esPrincipal = true,
+                    color = "Blanco Perlado",
+                    vin = "1HGCR2F33HA000001",
+                    tipoCombustible = TipoCombustible.GASOLINA,
+                    cilindraje = "2000 cc",
+                    sincronizado = true,
+                    archivado = false
+                ),
+                Vehiculo(
+                    id = "v2",
+                    placa = "XYZ-789",
+                    marca = "Yamaha",
+                    modelo = "FZ 25",
+                    anio = 2023,
+                    tipo = TipoVehiculo.MOTOCICLETA,
+                    kilometrajeActual = 12500,
+                    fechaSeguroSoat = null,
+                    fechaTecnoMecanica = null,
+                    esPrincipal = false,
+                    color = "Negro Mate",
+                    vin = "ME1RE2503P000002",
+                    tipoCombustible = TipoCombustible.GASOLINA,
+                    cilindraje = "250 cc",
+                    sincronizado = true,
+                    archivado = false
+                )
             )
-        )
-        _vehiculos.value = defaultList.sortedByDescending { it.esPrincipal }
+            _vehiculos.value = defaultList.sortedByDescending { it.esPrincipal }
 
-        _historialKm.value = listOf(
-            HistorialKilometraje(id = "hk1", vehiculoId = "v1", kilometraje = 45200, nota = "Lectura inicial"),
-            HistorialKilometraje(id = "hk2", vehiculoId = "v2", kilometraje = 12500, nota = "Lectura inicial")
-        )
+            _historialKm.value = listOf(
+                HistorialKilometraje(id = "hk1", vehiculoId = "v1", kilometraje = 45200, nota = "Lectura inicial"),
+                HistorialKilometraje(id = "hk2", vehiculoId = "v2", kilometraje = 12500, nota = "Lectura inicial")
+            )
+        }
 
         loadInitialData()
     }

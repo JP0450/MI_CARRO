@@ -3,6 +3,7 @@ package com.unaula.proyecto_final.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -375,49 +376,62 @@ fun VehiculosScreen(
                                             Text("Reactivar Vehículo")
                                         }
                                     } else {
-                                        if (vehiculo.esPrincipal) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier
-                                                    .clip(CircleShape)
-                                                    .background(ColorDeepGreen.copy(alpha = 0.15f))
-                                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                                            ) {
-                                                Icon(Icons.Default.Star, contentDescription = null, tint = ColorDeepGreen, modifier = Modifier.size(14.dp))
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text(
-                                                    text = "Vehículo Principal",
-                                                    color = ColorDeepGreen,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 12.sp
-                                                )
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            if (vehiculo.esPrincipal) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(ColorDeepGreen.copy(alpha = 0.15f))
+                                                        .padding(vertical = 10.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Icon(Icons.Default.Star, contentDescription = null, tint = ColorDeepGreen, modifier = Modifier.size(14.dp))
+                                                        Spacer(modifier = Modifier.width(3.dp))
+                                                        Text(
+                                                            text = "Principal",
+                                                            color = ColorDeepGreen,
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 11.sp,
+                                                            maxLines = 1,
+                                                            softWrap = false
+                                                        )
+                                                    }
+                                                }
+                                            } else {
+                                                OutlinedButton(
+                                                    onClick = { vehiculoViewModel.asignarVehiculoPrincipal(vehiculo.id) },
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    modifier = Modifier.weight(1f),
+                                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                                                ) {
+                                                    Text("Principal", maxLines = 1, fontSize = 11.sp, softWrap = false)
+                                                }
                                             }
-                                        } else {
-                                            OutlinedButton(
-                                                onClick = { vehiculoViewModel.asignarVehiculoPrincipal(vehiculo.id) },
-                                                shape = RoundedCornerShape(10.dp)
-                                            ) {
-                                                Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(14.dp))
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text("Hacer Principal")
-                                            }
-                                        }
 
-                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                             OutlinedButton(
                                                 onClick = { vehiculoViewModel.archivarVehiculo(vehiculo.id, true) },
-                                                shape = RoundedCornerShape(10.dp)
+                                                shape = RoundedCornerShape(10.dp),
+                                                modifier = Modifier.weight(1f),
+                                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                                             ) {
-                                                Text("Archivar")
+                                                Text("Archivar", maxLines = 1, fontSize = 11.sp, softWrap = false)
                                             }
 
                                             OutlinedButton(
                                                 onClick = { vehiculoHistorialId = vehiculo.id },
-                                                shape = RoundedCornerShape(10.dp)
+                                                shape = RoundedCornerShape(10.dp),
+                                                modifier = Modifier.weight(1f),
+                                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                                             ) {
-                                                Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(14.dp))
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text("KM")
+                                                Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(13.dp))
+                                                Spacer(modifier = Modifier.width(2.dp))
+                                                Text("KM", maxLines = 1, fontSize = 11.sp, softWrap = false)
                                             }
                                         }
                                     }

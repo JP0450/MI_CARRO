@@ -15,109 +15,114 @@ import java.util.UUID
 
 class MantenimientoRepository(private val context: Context) {
 
-    private val _programados = MutableStateFlow<List<MantenimientoProgramado>>(emptyList())
-    val programados: StateFlow<List<MantenimientoProgramado>> = _programados.asStateFlow()
-
-    private val _realizados = MutableStateFlow<List<MantenimientoRealizado>>(emptyList())
-    val realizados: StateFlow<List<MantenimientoRealizado>> = _realizados.asStateFlow()
-
-    private val _categorias = MutableStateFlow<List<CategoriaMantenimiento>>(
-        listOf(
-            CategoriaMantenimiento(id = "c1", nombre = "Aceite"),
-            CategoriaMantenimiento(id = "c2", nombre = "Filtros"),
-            CategoriaMantenimiento(id = "c3", nombre = "Frenos"),
-            CategoriaMantenimiento(id = "c4", nombre = "Llantas"),
-            CategoriaMantenimiento(id = "c5", nombre = "Batería"),
-            CategoriaMantenimiento(id = "c6", nombre = "Refrigeración"),
-            CategoriaMantenimiento(id = "c7", nombre = "Suspensión"),
-            CategoriaMantenimiento(id = "c8", nombre = "Transmisión"),
-            CategoriaMantenimiento(id = "c9", nombre = "Otros")
+    companion object {
+        private val _programados = MutableStateFlow<List<MantenimientoProgramado>>(emptyList())
+        private val _realizados = MutableStateFlow<List<MantenimientoRealizado>>(emptyList())
+        private val _categorias = MutableStateFlow<List<CategoriaMantenimiento>>(
+            listOf(
+                CategoriaMantenimiento(id = "c1", nombre = "Aceite"),
+                CategoriaMantenimiento(id = "c2", nombre = "Filtros"),
+                CategoriaMantenimiento(id = "c3", nombre = "Frenos"),
+                CategoriaMantenimiento(id = "c4", nombre = "Llantas"),
+                CategoriaMantenimiento(id = "c5", nombre = "Batería"),
+                CategoriaMantenimiento(id = "c6", nombre = "Refrigeración"),
+                CategoriaMantenimiento(id = "c7", nombre = "Suspensión"),
+                CategoriaMantenimiento(id = "c8", nombre = "Transmisión"),
+                CategoriaMantenimiento(id = "c9", nombre = "Otros")
+            )
         )
-    )
+        private var isInitialized = false
+    }
+
+    val programados: StateFlow<List<MantenimientoProgramado>> = _programados.asStateFlow()
+    val realizados: StateFlow<List<MantenimientoRealizado>> = _realizados.asStateFlow()
     val categorias: StateFlow<List<CategoriaMantenimiento>> = _categorias.asStateFlow()
 
     private val firestore = FirebaseProvider.getFirestore(context)
 
     init {
-        val unMesMillis = 30L * 24 * 60 * 60 * 1000
-        _programados.value = listOf(
-            MantenimientoProgramado(
-                id = "p1",
-                vehiculoId = "v1",
-                titulo = "Cambio de Aceite de Motor",
-                descripcion = "Aceite sintético 10W-30 y filtro de aceite",
-                categoria = "Aceite",
-                criterio = CriterioAlerta.AMBOS,
-                kilometrajeObjetivo = 50000,
-                fechaObjetivo = System.currentTimeMillis() + unMesMillis,
-                frecuenciaKm = 10000,
-                frecuenciaMeses = 6,
-                anticipacionKm = 500,
-                anticipacionDias = 7,
-                estado = EstadoMantenimiento.AL_DIA,
-                pausado = false
-            ),
-            MantenimientoProgramado(
-                id = "p2",
-                vehiculoId = "v1",
-                titulo = "Revisión de Frenos",
-                descripcion = "Cambio de pastillas delanteras y rectificación de discos",
-                categoria = "Frenos",
-                criterio = CriterioAlerta.KILOMETRAJE,
-                kilometrajeObjetivo = 46000,
-                frecuenciaKm = 20000,
-                anticipacionKm = 1000,
-                anticipacionDias = 10,
-                estado = EstadoMantenimiento.PROXIMO,
-                pausado = false
-            ),
-            MantenimientoProgramado(
-                id = "p3",
-                vehiculoId = "v2",
-                titulo = "Mantenimiento de Cadena y Kit de Arrastre",
-                descripcion = "Limpieza, lubricación y tensión de cadena",
-                categoria = "Transmisión",
-                criterio = CriterioAlerta.KILOMETRAJE,
-                kilometrajeObjetivo = 13000,
-                frecuenciaKm = 3000,
-                anticipacionKm = 300,
-                anticipacionDias = 5,
-                estado = EstadoMantenimiento.PROXIMO,
-                pausado = false
+        if (!isInitialized) {
+            isInitialized = true
+            val unMesMillis = 30L * 24 * 60 * 60 * 1000
+            _programados.value = listOf(
+                MantenimientoProgramado(
+                    id = "p1",
+                    vehiculoId = "v1",
+                    titulo = "Cambio de Aceite de Motor",
+                    descripcion = "Aceite sintético 10W-30 y filtro de aceite",
+                    categoria = "Aceite",
+                    criterio = CriterioAlerta.AMBOS,
+                    kilometrajeObjetivo = 50000,
+                    fechaObjetivo = System.currentTimeMillis() + unMesMillis,
+                    frecuenciaKm = 10000,
+                    frecuenciaMeses = 6,
+                    anticipacionKm = 500,
+                    anticipacionDias = 7,
+                    estado = EstadoMantenimiento.AL_DIA,
+                    pausado = false
+                ),
+                MantenimientoProgramado(
+                    id = "p2",
+                    vehiculoId = "v1",
+                    titulo = "Revisión de Frenos",
+                    descripcion = "Cambio de pastillas delanteras y rectificación de discos",
+                    categoria = "Frenos",
+                    criterio = CriterioAlerta.KILOMETRAJE,
+                    kilometrajeObjetivo = 46000,
+                    frecuenciaKm = 20000,
+                    anticipacionKm = 1000,
+                    anticipacionDias = 10,
+                    estado = EstadoMantenimiento.PROXIMO,
+                    pausado = false
+                ),
+                MantenimientoProgramado(
+                    id = "p3",
+                    vehiculoId = "v2",
+                    titulo = "Mantenimiento de Cadena y Kit de Arrastre",
+                    descripcion = "Limpieza, lubricación y tensión de cadena",
+                    categoria = "Transmisión",
+                    criterio = CriterioAlerta.KILOMETRAJE,
+                    kilometrajeObjetivo = 13000,
+                    frecuenciaKm = 3000,
+                    anticipacionKm = 300,
+                    anticipacionDias = 5,
+                    estado = EstadoMantenimiento.PROXIMO,
+                    pausado = false
+                )
             )
-        )
 
-        _realizados.value = listOf(
-            MantenimientoRealizado(
-                id = "r1",
-                vehiculoId = "v1",
-                titulo = "Cambio de Filtro de Aire y Batería",
-                categoria = "Filtros",
-                tipo = TipoMantenimiento.PREVENTIVO,
-                taller = "Taller Central Toyota",
-                fecha = System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000),
-                kilometrajeRealizado = 40000,
-                costoManoDeObra = 40000.0,
-                costoRepuestos = 280000.0,
-                costoTotal = 320000.0,
-                observaciones = "Se cambió batería por garantía expirada",
-                repuestos = listOf(
-                    Repuesto(
-                        id = "rep1",
-                        nombre = "Batería Mac Gold",
-                        marca = "MAC",
-                        referencia = "GC-55",
-                        cantidad = 1,
-                        proveedor = "Almacén Baterías",
-                        costo = 280000.0,
-                        garantiaMeses = 12,
-                        garantiaKm = 20000,
-                        fechaInstalacion = System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000),
-                        kilometrajeInstalacion = 40000
+            _realizados.value = listOf(
+                MantenimientoRealizado(
+                    id = "r1",
+                    vehiculoId = "v1",
+                    titulo = "Cambio de Filtro de Aire y Batería",
+                    categoria = "Filtros",
+                    tipo = TipoMantenimiento.PREVENTIVO,
+                    taller = "Taller Central Toyota",
+                    fecha = System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000),
+                    kilometrajeRealizado = 40000,
+                    costoManoDeObra = 40000.0,
+                    costoRepuestos = 280000.0,
+                    costoTotal = 320000.0,
+                    observaciones = "Se cambió batería por garantía expirada",
+                    repuestos = listOf(
+                        Repuesto(
+                            id = "rep1",
+                            nombre = "Batería Mac Gold",
+                            marca = "MAC",
+                            referencia = "GC-55",
+                            cantidad = 1,
+                            proveedor = "Almacén Baterías",
+                            costo = 280000.0,
+                            garantiaMeses = 12,
+                            garantiaKm = 20000,
+                            fechaInstalacion = System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000),
+                            kilometrajeInstalacion = 40000
+                        )
                     )
                 )
             )
-        )
+        }
 
         loadInitialData()
     }
@@ -262,7 +267,6 @@ class MantenimientoRepository(private val context: Context) {
         }
     }
 
-    // RF-21: Reprogramación automática transaccional robusta
     fun registrarMantenimientoRealizado(realizado: MantenimientoRealizado) {
         val idToUse = if (realizado.id.isBlank()) UUID.randomUUID().toString() else realizado.id
         val item = realizado.copy(id = idToUse, sincronizado = firestore != null)
