@@ -102,7 +102,7 @@ fun ProgramarMantenimientoScreen(
     var plantillaSeleccionadaNombre by remember { mutableStateOf("Seleccionar Mantenimiento Predeterminado...") }
 
     Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.White,
+        containerColor = com.unaula.proyecto_final.ui.theme.ColorBlushPink,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
         Column(
@@ -113,6 +113,12 @@ fun ProgramarMantenimientoScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
+            Text(
+                text = "MANTENIMIENTOS / PROGRAMAR",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = com.unaula.proyecto_final.ui.theme.ColorTextSecondary
+            )
             Text(
                 text = "Programar mantenimiento",
                 style = MaterialTheme.typography.headlineMedium,

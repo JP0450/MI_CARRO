@@ -12,7 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
 private val DarkColorScheme = darkColorScheme(
-    primary = ColorAzureBlue,
+    primary = ColorDeepBlue,
     onPrimary = Color.White,
     primaryContainer = ColorBurgundy,
     onPrimaryContainer = ColorDeepGreen,
@@ -37,15 +37,15 @@ private val DarkColorScheme = darkColorScheme(
 private val LightColorScheme = lightColorScheme(
     primary = ColorAzureBlue,
     onPrimary = Color.White,
-    primaryContainer = ColorBurgundy,   // #CCE9C9
+    primaryContainer = Color.White,
     onPrimaryContainer = ColorDeepGreen,
-    secondary = ColorAzureBlue,         // #4593F4 Botones de Acción
-    secondaryContainer = ColorMintAqua, // #D6F1EB
+    secondary = ColorDeepBlue,
+    secondaryContainer = ColorMintAqua,
     onSecondaryContainer = ColorTextPrimary,
     tertiary = Color(0xFFD97706),
     tertiaryContainer = Color(0xFFFEF3C7),
     onTertiaryContainer = Color(0xFF92400E),
-    background = ColorBlushPink,        // #FFFFFF
+    background = ColorBlushPink,
     onBackground = ColorTextPrimary,
     surface = Color.White,
     onSurface = ColorTextPrimary,

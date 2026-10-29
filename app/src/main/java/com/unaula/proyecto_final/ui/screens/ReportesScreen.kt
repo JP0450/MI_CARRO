@@ -162,7 +162,7 @@ fun ReportesScreen(
     LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White),
+                .background(com.unaula.proyecto_final.ui.theme.ColorBlushPink),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(
                 start = 14.dp,
                 top = 20.dp,
@@ -173,6 +173,12 @@ fun ReportesScreen(
         ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text(
+                        text = "REPORTES",
+                        color = ColorTextSecondary,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
                     Text(
                         text = "Reportes y KPIs",
                         color = ColorDeepGreen,

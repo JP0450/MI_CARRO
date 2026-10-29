@@ -117,7 +117,7 @@ fun HistorialScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(androidx.compose.ui.graphics.Color.White)
+            .background(com.unaula.proyecto_final.ui.theme.ColorBlushPink)
             .imePadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -130,13 +130,19 @@ fun HistorialScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Historial y auditoría",
+                        text = "HISTORIAL",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ColorTextSecondary
+                    )
+                    Text(
+                        text = "Historial",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = ColorDeepGreen
                     )
                     Text(
-                        text = "Consulta servicios, filtros cruzados y exporta CSV",
+                        text = "Cada servicio, repuesto y garantía a la mano.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = ColorTextSecondary
                     )

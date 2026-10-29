@@ -122,7 +122,7 @@ fun VehiculosScreen(
     var colorDropdownExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.White,
+        containerColor = com.unaula.proyecto_final.ui.theme.ColorBlushPink,
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
@@ -159,6 +159,12 @@ fun VehiculosScreen(
                 .padding(innerPadding)
                 .padding(16.dp)
         ) {
+            Text(
+                text = "VEHÍCULOS",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = ColorTextSecondary
+            )
             Text(
                 text = "Gestión de vehículos",
                 style = MaterialTheme.typography.headlineMedium,

@@ -98,7 +98,7 @@ fun RegistrarMantenimientoScreen(
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale("es", "CO"))
 
     Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.White,
+        containerColor = com.unaula.proyecto_final.ui.theme.ColorBlushPink,
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
         LazyColumn(
@@ -110,7 +110,13 @@ fun RegistrarMantenimientoScreen(
         ) {
             item {
                 Text(
-                    text = "Registrar servicio",
+                    text = "MANTENIMIENTOS / REGISTRAR",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = com.unaula.proyecto_final.ui.theme.ColorTextSecondary
+                )
+                Text(
+                    text = "Registrar mantenimiento",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = com.unaula.proyecto_final.ui.theme.ColorDeepGreen

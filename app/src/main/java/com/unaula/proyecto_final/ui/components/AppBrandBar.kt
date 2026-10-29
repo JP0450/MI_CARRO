@@ -1,6 +1,5 @@
 package com.unaula.proyecto_final.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,12 +11,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -26,11 +25,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.unaula.proyecto_final.ui.theme.ColorBorder
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.unaula.proyecto_final.ui.theme.ColorBorderMint
-import com.unaula.proyecto_final.ui.theme.ColorMintAqua
 import com.unaula.proyecto_final.ui.theme.ColorTextSecondary
 import com.unaula.proyecto_final.ui.theme.ColorDeepGreen
 import com.unaula.proyecto_final.ui.theme.ColorTextPrimary
@@ -46,7 +44,15 @@ fun AppBrandBar(
             .background(Color.White)
             .windowInsetsPadding(WindowInsets.statusBars)
             .height(64.dp)
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 12.dp)
+            .drawBehind {
+                drawLine(
+                    color = ColorBorder,
+                    start = androidx.compose.ui.geometry.Offset(0f, size.height),
+                    end = androidx.compose.ui.geometry.Offset(size.width, size.height),
+                    strokeWidth = 1.dp.toPx()
+                )
+            },
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (onBack != null) {
@@ -63,12 +69,12 @@ fun AppBrandBar(
         Surface(
             modifier = Modifier.size(36.dp),
             shape = RoundedCornerShape(10.dp),
-            color = ColorMintAqua
+            color = ColorDeepGreen
         ) {
             Icon(
                 imageVector = Icons.Default.DirectionsCar,
                 contentDescription = "MI CARRO",
-                tint = ColorDeepGreen,
+                tint = Color.White,
                 modifier = Modifier.padding(7.dp)
             )
         }
@@ -91,26 +97,12 @@ fun AppBrandBar(
         if (onSettingsClick != null) {
             IconButton(onClick = onSettingsClick, modifier = Modifier.size(36.dp)) {
                 Icon(
-                    imageVector = Icons.Default.Settings,
+                    imageVector = Icons.Outlined.Settings,
                     contentDescription = "Configuración",
                     tint = ColorDeepGreen
                 )
             }
             Spacer(modifier = Modifier.width(4.dp))
-        }
-        Surface(
-            shape = CircleShape,
-            color = ColorMintAqua,
-            border = BorderStroke(1.dp, ColorBorderMint)
-        ) {
-            Text(
-                text = "AM",
-                color = ColorDeepGreen,
-                fontSize = 11.sp,
-                lineHeight = 14.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 9.dp, vertical = 8.dp)
-            )
         }
     }
 }

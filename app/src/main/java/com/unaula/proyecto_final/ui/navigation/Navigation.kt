@@ -78,29 +78,20 @@ fun AppNavigation(
         Screen.Historial,
         Screen.Reportes
     )
-    val isFormRoute = currentRoute == Screen.ProgramarMantenimiento.route ||
-        currentRoute == Screen.RegistrarMantenimiento.route ||
-        currentRoute == Screen.Configuracion.route
-
     Scaffold(
-        containerColor = Color.White,
+        containerColor = Color(0xFFF3F6FA),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             AppBrandBar(
-                onBack = if (isFormRoute) {
-                    { navController.popBackStack() }
-                } else {
-                    null
-                },
-                onSettingsClick = if (currentRoute != Screen.Configuracion.route && !isFormRoute) {
-                    { navController.navigate(Screen.Configuracion.route) }
-                } else {
-                    null
+                onSettingsClick = {
+                    if (currentRoute != Screen.Configuracion.route) {
+                        navController.navigate(Screen.Configuracion.route)
+                    }
                 }
             )
         },
         bottomBar = {
-            if (!isImeVisible && currentRoute in bottomNavItems.map { it.route }) {
+            if (!isImeVisible) {
                 NavigationBar(
                     containerColor = Color.White,
                     contentColor = ColorTextSecondary,
@@ -115,13 +106,17 @@ fun AppNavigation(
                             },
                             label = { Text(screen.title) },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = ColorDeepBlue,
+                                selectedIconColor = Color.White,
                                 selectedTextColor = ColorDeepBlue,
-                                indicatorColor = androidx.compose.ui.graphics.Color(0xFFEAF3FF),
+                                indicatorColor = ColorDeepBlue,
                                 unselectedIconColor = ColorTextSecondary,
                                 unselectedTextColor = ColorTextSecondary
                             ),
-                            selected = currentRoute == screen.route,
+                            selected = currentRoute == screen.route ||
+                                (currentRoute == Screen.ProgramarMantenimiento.route &&
+                                    screen.route == Screen.Dashboard.route) ||
+                                (currentRoute == Screen.RegistrarMantenimiento.route &&
+                                    screen.route == Screen.Dashboard.route),
                             onClick = {
                                 navController.navigate(screen.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {

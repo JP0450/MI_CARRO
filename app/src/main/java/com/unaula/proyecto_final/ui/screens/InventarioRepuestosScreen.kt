@@ -53,14 +53,20 @@ fun InventarioRepuestosScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(androidx.compose.ui.graphics.Color.White)
+            .background(com.unaula.proyecto_final.ui.theme.ColorBlushPink)
             .imePadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             Text(
-                text = "Inventario de repuestos instalados (RF-27)",
+                text = "HISTORIAL / DETALLE DE REPUESTOS",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = ColorTextSecondary
+            )
+            Text(
+                text = "Repuestos instalados",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = ColorDeepGreen

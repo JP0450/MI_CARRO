@@ -135,12 +135,18 @@ fun DashboardScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(androidx.compose.ui.graphics.Color.White)
+            .background(com.unaula.proyecto_final.ui.theme.ColorBlushPink)
             .imePadding()
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
+            Text(
+                text = "INICIO",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = ColorTextSecondary
+            )
             Text(
                 text = "Tu flota, bajo control",
                 style = MaterialTheme.typography.headlineMedium,
@@ -400,11 +406,11 @@ fun DashboardScreen(
                             Text("Programar")
                         }
 
-                        Button(
+                        OutlinedButton(
                             onClick = onNavigateToRegistrar,
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                            border = BorderStroke(1.dp, ColorDeepGreen)
                         ) {
                             Icon(Icons.Default.Build, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))

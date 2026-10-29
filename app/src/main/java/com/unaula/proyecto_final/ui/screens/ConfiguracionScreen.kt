@@ -55,20 +55,26 @@ fun ConfiguracionScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(com.unaula.proyecto_final.ui.theme.ColorBlushPink)
             .imePadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = "Configuración y alertas (RF-29)",
+                text = "CONFIGURACIÓN",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = ColorTextSecondary
+            )
+            Text(
+                text = "Configuración",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = ColorDeepGreen
             )
             Text(
-                text = "Personaliza las notificaciones y umbrales globales de tu flota",
+                text = "Ajusta los avisos y umbrales de tu flota.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = ColorTextSecondary
             )
