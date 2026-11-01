@@ -1,6 +1,7 @@
 package com.unaula.proyecto_final.ui.screens
 
 import android.content.res.Configuration
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -26,6 +27,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -63,7 +65,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,12 +91,14 @@ fun DashboardScreen(
     onNavigateToRegistrar: () -> Unit,
     onNavigateToVehiculos: () -> Unit
 ) {
+    val context = LocalContext.current
     val vehiculos by vehiculoViewModel.vehiculos.collectAsState()
     val vehiculoSeleccionado by vehiculoViewModel.vehiculoSeleccionado.collectAsState()
     val programados by mantenimientoViewModel.programados.collectAsState()
 
     var showKmDialog by remember { mutableStateOf(false) }
     var nuevoKmText by remember { mutableStateOf("") }
+    var kmErrorText by remember { mutableStateOf<String?>(null) }
     var showOdometroWarning by remember { mutableStateOf(false) }
     var dropdownExpanded by remember { mutableStateOf(false) }
 
@@ -501,8 +507,29 @@ fun DashboardScreen(
     }
 
     if (showKmDialog) {
+        val ejecutarGuardadoKm: () -> Unit = {
+            val km = nuevoKmText.toIntOrNull()
+            val actualKm = vehiculoSeleccionado?.kilometrajeActual ?: 0
+            if (km == null || km <= 0) {
+                kmErrorText = "Ingresa un número de kilometraje válido"
+            } else if (vehiculoSeleccionado != null) {
+                kmErrorText = null
+                if (km < actualKm) {
+                    showOdometroWarning = true
+                } else {
+                    vehiculoViewModel.actualizarKilometraje(vehiculoSeleccionado!!.id, km)
+                    mantenimientoViewModel.evaluarAlertas(vehiculoSeleccionado!!.id, km)
+                    Toast.makeText(context, "Kilometraje actualizado a $km km", Toast.LENGTH_SHORT).show()
+                    showKmDialog = false
+                }
+            }
+        }
+
         AlertDialog(
-            onDismissRequest = { showKmDialog = false },
+            onDismissRequest = {
+                kmErrorText = null
+                showKmDialog = false
+            },
             title = { Text("Actualizar Kilometraje") },
             text = {
                 Column(
@@ -514,36 +541,41 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = nuevoKmText,
-                        onValueChange = { nuevoKmText = it },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        onValueChange = {
+                            nuevoKmText = it
+                            kmErrorText = null
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = { ejecutarGuardadoKm() }
+                        ),
+                        isError = kmErrorText != null,
+                        supportingText = kmErrorText?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
-                        label = { Text("Nuevo Kilometraje") }
+                        label = { Text("Nuevo Kilometraje") },
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
                 Button(
-                    onClick = {
-                        val km = nuevoKmText.toIntOrNull()
-                        val actualKm = vehiculoSeleccionado?.kilometrajeActual ?: 0
-                        if (km != null && vehiculoSeleccionado != null) {
-                            if (km < actualKm) {
-                                showOdometroWarning = true
-                            } else {
-                                vehiculoViewModel.actualizarKilometraje(vehiculoSeleccionado!!.id, km)
-                                mantenimientoViewModel.evaluarAlertas(vehiculoSeleccionado!!.id, km)
-                                showKmDialog = false
-                            }
-                        }
-                    },
+                    onClick = ejecutarGuardadoKm,
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text("Guardar")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showKmDialog = false }) {
+                TextButton(
+                    onClick = {
+                        kmErrorText = null
+                        showKmDialog = false
+                    }
+                ) {
                     Text("Cancelar")
                 }
             }
@@ -564,6 +596,7 @@ fun DashboardScreen(
                         if (km != null && vehiculoSeleccionado != null) {
                             vehiculoViewModel.actualizarKilometraje(vehiculoSeleccionado!!.id, km, "Lectura menor / reemplazo de tablero")
                             mantenimientoViewModel.evaluarAlertas(vehiculoSeleccionado!!.id, km)
+                            Toast.makeText(context, "Kilometraje actualizado a $km km", Toast.LENGTH_SHORT).show()
                         }
                         showOdometroWarning = false
                         showKmDialog = false

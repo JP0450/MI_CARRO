@@ -1,6 +1,7 @@
 package com.unaula.proyecto_final.ui.screens
 
 import android.content.res.Configuration
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -41,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -79,6 +82,7 @@ fun ProgramarMantenimientoScreen(
     mantenimientoViewModel: MantenimientoViewModel,
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val vehiculoSeleccionado by vehiculoViewModel.vehiculoSeleccionado.collectAsState()
     val categorias by mantenimientoViewModel.categorias.collectAsState()
 
@@ -95,6 +99,7 @@ fun ProgramarMantenimientoScreen(
     var fechaObjetivoTimestamp by remember { mutableStateOf<Long?>(System.currentTimeMillis() + (180L * 24 * 60 * 60 * 1000)) }
     var frecuenciaKmText by remember { mutableStateOf("5000") }
     var frecuenciaMesesText by remember { mutableStateOf("6") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     var criterioDropdownExpanded by remember { mutableStateOf(false) }
     var plantillaDropdownExpanded by remember { mutableStateOf(false) }
@@ -362,33 +367,61 @@ fun ProgramarMantenimientoScreen(
                 }
             }
 
+            errorMessage?.let { err ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = err,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
-                onClick = {
-                    if (tituloText.isNotBlank() && vehiculoSeleccionado != null) {
-                        val kmObj = kmObjetivoText.toIntOrNull() ?: (kmActual + 5000)
-
-                        mantenimientoViewModel.guardarProgramado(
-                            MantenimientoProgramado(
-                                vehiculoId = vehiculoSeleccionado!!.id,
-                                titulo = tituloText,
-                                descripcion = descripcionText,
-                                categoria = categoriaSeleccionada,
-                                criterio = criterioSeleccionado,
-                                kilometrajeObjetivo = kmObj,
-                                fechaObjetivo = fechaObjetivoTimestamp,
-                                frecuenciaKm = frecuenciaKmText.toIntOrNull(),
-                                frecuenciaMeses = frecuenciaMesesText.toIntOrNull()
-                            )
-                        )
-                        mantenimientoViewModel.evaluarAlertas(vehiculoSeleccionado!!.id, vehiculoSeleccionado!!.kilometrajeActual)
-                        onNavigateBack()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Guardar Programación Periódica")
+                OutlinedButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Cancelar")
+                }
+
+                Button(
+                    onClick = {
+                        if (vehiculoSeleccionado == null) {
+                            errorMessage = "Selecciona o registra un vehículo primero"
+                        } else if (tituloText.isBlank()) {
+                            errorMessage = "Debes ingresar un título para el mantenimiento"
+                        } else {
+                            errorMessage = null
+                            val kmObj = kmObjetivoText.toIntOrNull() ?: (kmActual + 5000)
+
+                            mantenimientoViewModel.guardarProgramado(
+                                MantenimientoProgramado(
+                                    vehiculoId = vehiculoSeleccionado!!.id,
+                                    titulo = tituloText,
+                                    descripcion = descripcionText,
+                                    categoria = categoriaSeleccionada,
+                                    criterio = criterioSeleccionado,
+                                    kilometrajeObjetivo = kmObj,
+                                    fechaObjetivo = fechaObjetivoTimestamp,
+                                    frecuenciaKm = frecuenciaKmText.toIntOrNull(),
+                                    frecuenciaMeses = frecuenciaMesesText.toIntOrNull()
+                                )
+                            )
+                            mantenimientoViewModel.evaluarAlertas(vehiculoSeleccionado!!.id, vehiculoSeleccionado!!.kilometrajeActual)
+                            Toast.makeText(context, "Mantenimiento programado exitosamente", Toast.LENGTH_SHORT).show()
+                            onNavigateBack()
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Guardar")
+                }
             }
         }
     }

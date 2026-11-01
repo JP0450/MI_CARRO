@@ -9,16 +9,24 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -42,7 +50,8 @@ import com.unaula.proyecto_final.ui.viewmodel.ConfiguracionViewModel
 
 @Composable
 fun ConfiguracionScreen(
-    configuracionViewModel: ConfiguracionViewModel
+    configuracionViewModel: ConfiguracionViewModel,
+    onNavigateBack: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val notificacionesActivas by configuracionViewModel.notificacionesActivas.collectAsState()
@@ -52,33 +61,51 @@ fun ConfiguracionScreen(
     var showResetDialog1 by remember { mutableStateOf(false) }
     var showResetDialog2 by remember { mutableStateOf(false) }
 
+    val scrollState = rememberScrollState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(com.unaula.proyecto_final.ui.theme.ColorBlushPink)
             .imePadding()
+            .verticalScroll(scrollState)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = "CONFIGURACIÓN",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = ColorTextSecondary
-            )
-            Text(
-                text = "Configuración",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = ColorDeepGreen
-            )
-            Text(
-                text = "Ajusta los avisos y umbrales de tu flota.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = ColorTextSecondary
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (onNavigateBack != null) {
+                IconButton(onClick = onNavigateBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = ColorDeepGreen
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "CONFIGURACIÓN",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ColorTextSecondary
+                )
+                Text(
+                    text = "Configuración",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = ColorDeepGreen
+                )
+            }
         }
+        Text(
+            text = "Ajusta los avisos y umbrales de tu flota.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = ColorTextSecondary
+        )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -186,6 +213,23 @@ fun ConfiguracionScreen(
                 ) {
                     Text("Restauración de Fábrica / Borrar Todo")
                 }
+            }
+        }
+
+        if (onNavigateBack != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = onNavigateBack,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = null,
+                    tint = ColorDeepGreen
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Volver al Inicio", color = ColorDeepGreen, fontWeight = FontWeight.Bold)
             }
         }
     }

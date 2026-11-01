@@ -82,16 +82,27 @@ fun AppNavigation(
         containerColor = Color(0xFFF3F6FA),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
+            val showBackButton = currentRoute == Screen.Configuracion.route ||
+                currentRoute == Screen.ProgramarMantenimiento.route ||
+                currentRoute == Screen.RegistrarMantenimiento.route ||
+                (navController.previousBackStackEntry != null && currentRoute !in bottomNavItems.map { it.route })
+
             AppBrandBar(
+                onBack = if (showBackButton) {
+                    { navController.popBackStack() }
+                } else null,
                 onSettingsClick = {
                     if (currentRoute != Screen.Configuracion.route) {
                         navController.navigate(Screen.Configuracion.route)
+                    } else {
+                        navController.popBackStack()
                     }
                 }
             )
         },
         bottomBar = {
-            if (!isImeVisible) {
+            val showBottomBar = !isImeVisible && currentRoute in bottomNavItems.map { it.route }
+            if (showBottomBar) {
                 NavigationBar(
                     containerColor = Color.White,
                     contentColor = ColorTextSecondary,
@@ -112,11 +123,7 @@ fun AppNavigation(
                                 unselectedIconColor = ColorTextSecondary,
                                 unselectedTextColor = ColorTextSecondary
                             ),
-                            selected = currentRoute == screen.route ||
-                                (currentRoute == Screen.ProgramarMantenimiento.route &&
-                                    screen.route == Screen.Dashboard.route) ||
-                                (currentRoute == Screen.RegistrarMantenimiento.route &&
-                                    screen.route == Screen.Dashboard.route),
+                            selected = currentRoute == screen.route,
                             onClick = {
                                 navController.navigate(screen.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
@@ -184,7 +191,8 @@ fun AppNavigation(
             }
             composable(Screen.Configuracion.route) {
                 ConfiguracionScreen(
-                    configuracionViewModel = viewModel()
+                    configuracionViewModel = viewModel(),
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }

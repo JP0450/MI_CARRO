@@ -1,6 +1,7 @@
 package com.unaula.proyecto_final.ui.screens
 
 import android.content.res.Configuration
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -29,6 +30,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -42,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -61,6 +64,7 @@ fun RegistrarMantenimientoScreen(
     mantenimientoViewModel: MantenimientoViewModel,
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val vehiculoSeleccionado by vehiculoViewModel.vehiculoSeleccionado.collectAsState()
     val categorias by mantenimientoViewModel.categorias.collectAsState()
     val configuration = LocalConfiguration.current
@@ -71,6 +75,7 @@ fun RegistrarMantenimientoScreen(
     var categoriaSeleccionada by remember { mutableStateOf("Otros") }
     var fechaEjecucion by remember { mutableStateOf(System.currentTimeMillis()) }
     var kmRealizadoText by remember { mutableStateOf(vehiculoSeleccionado?.kilometrajeActual?.toString() ?: "0") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     // Desglose de costos (RF-19)
     var costoManoDeObraText by remember { mutableStateOf("") }
@@ -459,40 +464,68 @@ fun RegistrarMantenimientoScreen(
             }
 
             item {
+                errorMessage?.let { err ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = err,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
-                    onClick = {
-                        if (tituloText.isNotBlank() && vehiculoSeleccionado != null) {
-                            val kmRealizado = kmRealizadoText.toIntOrNull() ?: (vehiculoSeleccionado?.kilometrajeActual ?: 0)
-
-                            mantenimientoViewModel.registrarRealizado(
-                                MantenimientoRealizado(
-                                    vehiculoId = vehiculoSeleccionado!!.id,
-                                    titulo = tituloText,
-                                    categoria = categoriaSeleccionada,
-                                    tipo = tipoMantenimiento,
-                                    taller = tallerText,
-                                    fecha = fechaEjecucion,
-                                    kilometrajeRealizado = kmRealizado,
-                                    costoManoDeObra = manoDeObraVal,
-                                    costoRepuestos = costoRepuestosSuma,
-                                    costoTotal = costoTotalVal,
-                                    observaciones = observacionesText,
-                                    repuestos = repuestosList.toList()
-                                )
-                            )
-
-                            if (kmRealizado > vehiculoSeleccionado!!.kilometrajeActual) {
-                                vehiculoViewModel.actualizarKilometraje(vehiculoSeleccionado!!.id, kmRealizado)
-                            }
-
-                            onNavigateBack()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Guardar Mantenimiento Realizado")
+                    OutlinedButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancelar")
+                    }
+
+                    Button(
+                        onClick = {
+                            if (vehiculoSeleccionado == null) {
+                                errorMessage = "Selecciona o registra un vehículo primero"
+                            } else if (tituloText.isBlank()) {
+                                errorMessage = "Debes ingresar el servicio o título del mantenimiento"
+                            } else {
+                                errorMessage = null
+                                val kmRealizado = kmRealizadoText.toIntOrNull() ?: (vehiculoSeleccionado?.kilometrajeActual ?: 0)
+
+                                mantenimientoViewModel.registrarRealizado(
+                                    MantenimientoRealizado(
+                                        vehiculoId = vehiculoSeleccionado!!.id,
+                                        titulo = tituloText,
+                                        categoria = categoriaSeleccionada,
+                                        tipo = tipoMantenimiento,
+                                        taller = tallerText,
+                                        fecha = fechaEjecucion,
+                                        kilometrajeRealizado = kmRealizado,
+                                        costoManoDeObra = manoDeObraVal,
+                                        costoRepuestos = costoRepuestosSuma,
+                                        costoTotal = costoTotalVal,
+                                        observaciones = observacionesText,
+                                        repuestos = repuestosList.toList()
+                                    )
+                                )
+
+                                if (kmRealizado > vehiculoSeleccionado!!.kilometrajeActual) {
+                                    vehiculoViewModel.actualizarKilometraje(vehiculoSeleccionado!!.id, kmRealizado)
+                                }
+
+                                Toast.makeText(context, "Mantenimiento registrado exitosamente", Toast.LENGTH_SHORT).show()
+                                onNavigateBack()
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Guardar Mantenimiento")
+                    }
                 }
             }
         }
